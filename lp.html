@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Happy Birthday 💖</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="lp/style.css"/>
+</head>
+<body>
+
+<!-- REQUEST FORM (shown when no ?id= present) -->
+<div id="request-screen" style="display:none">
+  <div class="req-bg"></div>
+  <div class="req-card">
+    <div class="req-icon">🎂</div>
+    <h1 class="req-title">Want Your Own Birthday LP?</h1>
+    <p class="req-sub">Fill in your details and we'll create a personalized birthday celebration page just for you!</p>
+
+    <div class="req-form">
+      <div class="req-group">
+        <label>Your Name *</label>
+        <input type="text" id="req-name" placeholder="Enter your name" class="req-input"/>
+      </div>
+      <div class="req-group">
+        <label>Email (optional)</label>
+        <input type="email" id="req-email" placeholder="your@email.com" class="req-input"/>
+      </div>
+      <div class="req-group">
+        <label>Message to admin (optional)</label>
+        <textarea id="req-message" class="req-input" rows="3" placeholder="Any special requests?"></textarea>
+      </div>
+      <div class="req-group">
+        <label>Your Photos (up to 6)</label>
+        <div class="req-upload" onclick="document.getElementById('req-imgs').click()">
+          <div>📸 Click to upload photos</div>
+          <div style="font-size:.8rem;opacity:.6;margin-top:.3rem">PNG, JPG — max 5MB each</div>
+          <input type="file" id="req-imgs" accept="image/*" multiple style="display:none" onchange="handleReqImages(event)"/>
+        </div>
+        <div id="req-previews" class="req-previews"></div>
+      </div>
+      <button class="req-btn" onclick="submitRequest()" id="req-submit-btn">
+        Send Request 💌
+      </button>
+      <p id="req-result" style="text-align:center;margin-top:1rem;font-size:.9rem"></p>
+    </div>
+  </div>
+</div>
+
+<!-- LP CONTENT (shown when ?id= is present) -->
+<div id="lp-screen" style="display:none">
+  <div id="stars"></div>
+  <canvas id="matrix"></canvas>
+  <div id="hearts-c"></div>
+  <div id="conf-c"></div>
+
+  <!-- COUNTDOWN -->
+  <div id="countdown-overlay">
+    <div id="countdown-num">3</div>
+    <p class="cd-sub">Get ready...</p>
+  </div>
+
+  <!-- MAIN PAGE -->
+  <div class="page" id="main-page">
+    <section id="hero">
+      <div class="word-stage" id="word-happy">HAPPY</div>
+      <div class="word-stage" id="word-birthday">BIRTHDAY</div>
+      <div class="word-stage" id="word-name"></div>
+      <div class="image-stage" id="stage-love">
+        <img src="images/love.png" alt="Love" onerror="this.style.display='none'"/>
+      </div>
+      <div class="image-stage" id="stage-happy">
+        <img src="images/happy.gif" alt="Happy" onerror="this.style.display='none'"/>
+      </div>
+    </section>
+
+    <!-- Custom message -->
+    <div id="custom-msg-section" style="display:none">
+      <div class="custom-msg-wrap">
+        <div class="custom-msg-card" id="custom-msg-card"></div>
+      </div>
+    </div>
+
+    <!-- PHOTO BOOK -->
+    <section id="photobook">
+      <h2 class="book-title">📖 Our Memories 📖</h2>
+      <p class="book-hint">✨ Click the book to open it • Drag pages to turn ✨</p>
+
+      <div class="book-closed-wrap" id="closed-book" onclick="openBook()">
+        <div class="book-closed">
+          <div class="book-closed-heart">💕</div>
+          <div class="book-closed-title">Our Memories</div>
+          <div class="book-closed-heart" style="font-size:1.2rem">✨</div>
+        </div>
+        <div class="click-hint">📖 Click to open</div>
+      </div>
+
+      <div class="book-open-wrap" id="open-book-wrap">
+        <div class="open-book" id="open-book">
+          <div class="static-left" id="static-left"><div class="ph-page"><div class="ph-text">📖</div></div></div>
+          <div class="b-page right-page" id="flip-page"
+               onmousedown="startDrag(event)" ontouchstart="startDrag(event)">
+            <div class="b-page-front" id="flip-front"><div class="ph-page"><div class="ph-text">📖</div></div></div>
+            <div class="b-page-back"  id="flip-back"><div class="ph-page"><div class="ph-text">📖</div></div></div>
+          </div>
+          <div class="book-spine-el"></div>
+          <div class="drag-arrow left-arrow"  id="arrow-left">‹</div>
+          <div class="drag-arrow right-arrow" id="arrow-right">›</div>
+        </div>
+        <div class="book-shadow"></div>
+        <div class="book-progress" id="book-progress"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- HEART FORMATION OVERLAY -->
+  <div id="heart-formation">
+    <div id="hf-stars"></div>
+    <div class="hf-title">💖 Forever in My Heart 💖</div>
+    <div class="heart-canvas-wrap" id="heart-canvas">
+      <svg id="hf-heart-glow" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="8" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <path id="hf-heart-path" fill="none" stroke="#ff2d78" stroke-width="3" filter="url(#glow)" opacity="0.7"/>
+      </svg>
+    </div>
+    <button class="hf-close" onclick="closeHeartFormation()">✕ Close</button>
+  </div>
+
+  <footer>made with 💖 just for you</footer>
+</div>
+
+<!-- Error screen -->
+<div id="error-screen" style="display:none;min-height:100vh;display:none;align-items:center;justify-content:center;flex-direction:column;gap:1rem;text-align:center;padding:2rem;background:#0a0812;color:#fff">
+  <div style="font-size:4rem">😢</div>
+  <h2 style="font-family:'Fredoka One',cursive;color:#ff2d78;font-size:2rem">LP Not Found</h2>
+  <p style="color:rgba(255,255,255,.5)">This birthday page doesn't exist or has been removed.</p>
+</div>
+
+<!-- QR lib + App Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="lp/app.js"></script>
+</body>
+</html>

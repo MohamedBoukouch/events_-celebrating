@@ -1,0 +1,315 @@
+/* =====================================================
+   BIRTHDAY LP PAGE — Style
+   ===================================================== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --pink:#ff2d78;--hot:#ff69b4;--dark:#04010f;
+  --gold:#ffd700;--page-bg:#fff9f0;
+  --page-shadow:rgba(0,0,0,0.4);
+}
+html{ scroll-behavior:smooth }
+body{
+  background:var(--dark);color:#fff;
+  font-family:'Nunito',sans-serif;
+  overflow-x:hidden;min-height:100vh;
+}
+
+/* ══════════════════════════════════════════
+   REQUEST SCREEN
+   ══════════════════════════════════════════ */
+#request-screen{
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:2rem 1rem;
+  position:relative;
+  background:radial-gradient(ellipse at 50% 0%,#1a0a2e 0%,#04010f 70%);
+}
+.req-bg{
+  position:fixed;inset:0;
+  background-image:radial-gradient(circle,rgba(255,45,120,.08) 1px,transparent 1px);
+  background-size:28px 28px;pointer-events:none;z-index:0;
+}
+.req-card{
+  position:relative;z-index:1;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,45,120,.2);
+  border-radius:24px;
+  padding:2.5rem 2rem;
+  width:100%;max-width:480px;
+  text-align:center;
+  box-shadow:0 0 60px rgba(255,45,120,.1);
+  animation:fadeUp .7s cubic-bezier(.175,.885,.32,1.275) both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+
+.req-icon{font-size:3.5rem;filter:drop-shadow(0 0 20px rgba(255,45,120,.6));margin-bottom:1rem;display:block}
+.req-title{
+  font-family:'Fredoka One',cursive;font-size:1.8rem;
+  color:#fff;margin-bottom:.5rem;
+}
+.req-sub{color:rgba(255,255,255,.5);font-size:.9rem;line-height:1.6;margin-bottom:2rem}
+
+.req-group{text-align:left;margin-bottom:1.2rem}
+.req-group label{
+  display:block;font-size:.8rem;font-weight:700;
+  color:rgba(255,255,255,.45);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:.4rem;
+}
+.req-input{
+  width:100%;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;padding:.8rem 1rem;
+  color:#fff;font-family:'Nunito',sans-serif;font-size:.95rem;
+  outline:none;resize:vertical;
+  transition:border-color .2s,box-shadow .2s;
+}
+.req-input:focus{
+  border-color:var(--pink);
+  box-shadow:0 0 0 3px rgba(255,45,120,.15);
+}
+.req-upload{
+  border:2px dashed rgba(255,45,120,.3);border-radius:12px;
+  padding:1.5rem;text-align:center;cursor:pointer;
+  transition:all .2s;color:rgba(255,255,255,.6);font-size:.9rem;
+}
+.req-upload:hover{border-color:var(--pink);background:rgba(255,45,120,.05)}
+
+.req-previews{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));
+  gap:.4rem;margin-top:.6rem;
+}
+.req-thumb{
+  aspect-ratio:1;border-radius:8px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.1);
+}
+.req-thumb img{width:100%;height:100%;object-fit:cover}
+
+.req-btn{
+  width:100%;background:var(--pink);color:#fff;border:none;
+  border-radius:12px;padding:1rem;
+  font-family:'Fredoka One',cursive;font-size:1.1rem;
+  cursor:pointer;transition:all .2s;margin-top:.5rem;
+}
+.req-btn:hover{opacity:.9;transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,45,120,.4)}
+.req-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* ══════════════════════════════════════════
+   LP SCREEN (Birthday page)
+   ══════════════════════════════════════════ */
+#lp-screen{ position:relative;min-height:100vh }
+
+/* STARS */
+#stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.star{
+  position:absolute;border-radius:50%;background:#fff;
+  animation:twinkle var(--d) infinite ease-in-out alternate;
+}
+@keyframes twinkle{from{opacity:.1;transform:scale(1)}to{opacity:1;transform:scale(1.4)}}
+
+/* MATRIX */
+#matrix{position:fixed;inset:0;z-index:1;pointer-events:none}
+
+/* COUNTDOWN */
+#countdown-overlay{
+  position:fixed;inset:0;z-index:1000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--dark);transition:opacity .8s;
+}
+#countdown-overlay.hidden{opacity:0;pointer-events:none}
+#countdown-num{
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(9rem,28vw,20rem);
+  color:var(--pink);line-height:1;
+  text-shadow:0 0 40px rgba(255,45,120,.9),0 0 100px rgba(255,45,120,.5);
+  animation:cpop .5s ease-out;
+}
+@keyframes cpop{0%{transform:scale(2.5);opacity:0}70%{transform:scale(.92)}100%{transform:scale(1);opacity:1}}
+.cd-sub{font-size:clamp(.8rem,2.5vw,1rem);letter-spacing:.4em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-top:1rem}
+
+/* FLOATING HEARTS */
+.fheart{position:fixed;z-index:2;pointer-events:none;animation:floatUp var(--d) linear infinite;opacity:0}
+@keyframes floatUp{
+  0%{opacity:0;transform:translateY(100vh) scale(.5) rotate(0deg)}
+  10%{opacity:1}90%{opacity:.8}
+  100%{opacity:0;transform:translateY(-20vh) scale(1.2) rotate(30deg)}
+}
+
+/* CONFETTI */
+.conf{position:fixed;top:-14px;pointer-events:none;z-index:999;border-radius:2px;animation:confFall var(--d) linear var(--dl) infinite;opacity:0}
+@keyframes confFall{0%{opacity:1;transform:translateY(0) rotate(0deg)}100%{opacity:0;transform:translateY(110vh) rotate(720deg)}}
+
+/* PAGE */
+.page{position:relative;z-index:10;opacity:0;transition:opacity .6s}
+.page.visible{opacity:1}
+
+/* HERO */
+#hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;padding:2rem 1rem;position:relative;overflow:hidden;
+}
+
+/* WORD STAGE */
+.word-stage{
+  position:absolute;top:50%;left:50%;
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(4rem,15vw,12rem);
+  color:var(--pink);
+  text-shadow:0 0 50px rgba(255,45,120,.8),0 0 100px rgba(255,45,120,.4),0 4px 20px rgba(0,0,0,.5);
+  opacity:0;transform:translate(-50%,-50%) scale(0.3);
+  transition:opacity .3s ease,transform .4s ease;
+  pointer-events:none;white-space:nowrap;letter-spacing:.05em;
+}
+.word-stage.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.word-stage.hide{opacity:0;transform:translate(-50%,-50%) scale(1.3)}
+
+/* IMAGE STAGE */
+.image-stage{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);opacity:0;
+  transition:opacity .5s ease,transform .5s ease;pointer-events:none;z-index:20;
+}
+.image-stage.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.image-stage.hide{opacity:0;transform:translate(-50%,-50%) scale(0.8)}
+.image-stage img{max-width:min(400px,80vw);max-height:min(400px,60vh)}
+
+/* CUSTOM MESSAGE */
+.custom-msg-wrap{
+  position:relative;z-index:10;
+  display:flex;justify-content:center;
+  padding:2rem 1rem;
+}
+.custom-msg-card{
+  background:rgba(255,45,120,.08);
+  border:1px solid rgba(255,45,120,.3);
+  border-radius:20px;
+  padding:2rem 2.5rem;
+  max-width:600px;text-align:center;
+  font-size:clamp(1rem,2.5vw,1.3rem);
+  line-height:1.8;color:rgba(255,255,255,.85);
+  font-style:italic;
+  box-shadow:0 0 40px rgba(255,45,120,.1);
+}
+.custom-msg-card::before{content:'"';font-size:4rem;color:var(--pink);line-height:.6;display:block;margin-bottom:.5rem;font-style:normal;opacity:.5}
+
+/* ── PHOTO BOOK ─────────────────────────────────── */
+#photobook{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:4rem 1.5rem;
+  background:radial-gradient(ellipse at center,rgba(5,0,20,.9) 0%,transparent 80%);
+  opacity:0;transform:translateY(40px);
+  transition:opacity 1s ease,transform 1s ease;
+}
+#photobook.visible{opacity:1;transform:translateY(0)}
+
+.book-title{
+  font-family:'Fredoka One',cursive;font-size:clamp(1.4rem,5vw,2.8rem);
+  color:var(--pink);text-shadow:0 0 30px rgba(255,45,120,.7);
+  margin-bottom:1rem;text-align:center;
+}
+.book-hint{font-size:.85rem;color:rgba(255,255,255,.4);letter-spacing:.1em;margin-bottom:2.5rem;text-align:center}
+
+.book-closed-wrap{
+  position:relative;cursor:pointer;transition:transform .3s;
+  display:flex;flex-direction:column;align-items:center;
+}
+.book-closed-wrap:hover{transform:scale(1.04) rotate(-1deg)}
+.book-closed{
+  width:min(260px,80vw);height:min(340px,55vw);
+  background:linear-gradient(135deg,#c00050 0%,#8b0030 40%,#6b0025 100%);
+  border-radius:6px 18px 18px 6px;
+  box-shadow:0 20px 60px rgba(255,45,120,.4),-6px 0 0 rgba(0,0,0,.5),inset -4px 0 8px rgba(0,0,0,.3);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;
+  position:relative;overflow:hidden;transition:box-shadow .3s;
+}
+.book-closed::before{content:'';position:absolute;left:0;top:0;bottom:0;width:22px;background:linear-gradient(90deg,#5a001a,#8b0030,#5a001a);border-radius:6px 0 0 6px}
+.book-closed::after{content:'';position:absolute;left:18px;top:0;bottom:0;width:3px;background:rgba(0,0,0,.4)}
+
+.book-closed-title{font-family:'Fredoka One',cursive;font-size:clamp(1rem,4vw,1.6rem);color:#ffe0ee;text-align:center;padding:0 2rem;text-shadow:0 2px 8px rgba(0,0,0,.5);position:relative;z-index:1}
+.book-closed-heart{font-size:clamp(2rem,7vw,3.5rem);animation:heartBeat 1.4s ease-in-out infinite;position:relative;z-index:1;filter:drop-shadow(0 0 20px rgba(255,45,120,.8))}
+@keyframes heartBeat{0%,100%{transform:scale(1)}14%{transform:scale(1.15)}28%{transform:scale(1)}42%{transform:scale(1.07)}56%{transform:scale(1)}}
+
+.click-hint{margin-top:1.2rem;font-family:'Fredoka One',cursive;font-size:.9rem;color:rgba(255,105,180,.6);letter-spacing:.1em;animation:blink 1.5s ease-in-out infinite alternate}
+@keyframes blink{from{opacity:.3}to{opacity:1}}
+
+.book-open-wrap{display:none;flex-direction:column;align-items:center;gap:1.5rem}
+.book-open-wrap.active{display:flex}
+
+.open-book{width:min(700px,95vw);height:min(460px,60vw);position:relative;perspective:2000px;cursor:default}
+.book-base{width:100%;height:100%;position:relative;transform-style:preserve-3d}
+
+.b-page{position:absolute;top:0;height:100%;width:50%;transform-origin:left center;transform-style:preserve-3d;transition:transform 0.7s cubic-bezier(0.645,0.045,0.355,1.000);cursor:pointer}
+.b-page.right-page{left:50%;transform-origin:left center}
+.b-page-front,.b-page-back{position:absolute;inset:0;backface-visibility:hidden;border-radius:0 12px 12px 0;overflow:hidden}
+.b-page-front{background:var(--page-bg);transform:rotateY(0deg)}
+.b-page-back{background:var(--page-bg);transform:rotateY(180deg);border-radius:12px 0 0 12px}
+.b-page-front img,.b-page-back img{width:100%;height:100%;object-fit:cover;display:block}
+
+.static-left{position:absolute;left:0;top:0;width:50%;height:100%;border-radius:12px 0 0 12px;overflow:hidden;background:var(--page-bg);z-index:0}
+.static-left img{width:100%;height:100%;object-fit:cover;display:block}
+
+.book-spine-el{position:absolute;left:50%;top:0;bottom:0;width:8px;background:linear-gradient(90deg,rgba(80,0,30,.9),rgba(180,0,60,.6),rgba(80,0,30,.9));transform:translateX(-50%);z-index:50;pointer-events:none;box-shadow:0 0 10px rgba(0,0,0,.5)}
+.book-shadow{width:min(660px,90vw);height:30px;background:radial-gradient(ellipse,rgba(255,45,120,.25) 0%,transparent 70%);margin-top:-10px}
+
+.drag-arrow{position:absolute;top:50%;transform:translateY(-50%);font-size:2rem;opacity:0.25;transition:opacity .3s;pointer-events:none;animation:arrowPulse 1.5s ease-in-out infinite alternate}
+.drag-arrow.left-arrow{left:12px}.drag-arrow.right-arrow{right:12px}
+@keyframes arrowPulse{from{opacity:.15}to{opacity:.5}}
+
+.book-progress{display:flex;gap:.4rem;align-items:center}
+.prog-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,45,120,.25);transition:background .3s,transform .3s}
+.prog-dot.active{background:var(--pink);transform:scale(1.3)}
+
+.ph-page{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;color:rgba(0,0,0,.2);font-size:.8rem;background:linear-gradient(135deg,#fff9f0,#ffe8f0)}
+.ph-page .ph-text{font-family:'Fredoka One',cursive;font-size:1rem}
+
+.last-page-content{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;background:linear-gradient(135deg,#fff0f5,#ffe0ee);gap:.7rem;text-align:center}
+.last-page-content .lp-heart{font-size:2.5rem;animation:heartBeat 1.4s ease-in-out infinite}
+.last-page-content .lp-title{font-family:'Fredoka One',cursive;font-size:clamp(1rem,3vw,1.5rem);color:#c00050}
+.last-page-content .lp-sub{font-size:clamp(.7rem,2vw,.9rem);color:rgba(150,0,60,.6);line-height:1.6}
+
+/* HEART FORMATION */
+#heart-formation{
+  display:none;position:fixed;inset:0;z-index:500;
+  align-items:center;justify-content:center;flex-direction:column;gap:1.5rem;
+  background:radial-gradient(ellipse at center,#0d0020 0%,#04010f 100%);
+  animation:fadInHF .8s ease forwards;overflow:hidden;
+}
+#heart-formation.show{display:flex}
+@keyframes fadInHF{from{opacity:0}to{opacity:1}}
+#hf-stars{position:absolute;inset:0;pointer-events:none;z-index:0}
+
+.heart-canvas-wrap{position:relative;flex-shrink:0;z-index:1}
+
+.hf-card{
+  position:absolute;background:#fff;padding:5px 5px 20px 5px;border-radius:4px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.15),0 6px 20px rgba(0,0,0,.7),0 0 18px rgba(255,45,120,.35);
+  transition:opacity .5s ease,transform .5s cubic-bezier(0.175,0.885,0.32,1.275),box-shadow .3s;
+  opacity:0;transform:scale(0) rotate(0deg);cursor:pointer;overflow:hidden;
+}
+.hf-card.placed{opacity:1}
+.hf-card:hover{box-shadow:0 0 0 2px rgba(255,45,120,.6),0 8px 30px rgba(0,0,0,.8),0 0 35px rgba(255,45,120,.7);z-index:10}
+.hf-card img{width:100%;height:100%;object-fit:cover;display:block;border-radius:2px}
+
+#hf-heart-glow{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0;transition:opacity 1s ease}
+#hf-heart-glow.visible{opacity:1}
+
+.hf-title{font-family:'Fredoka One',cursive;font-size:clamp(1.2rem,4vw,2.2rem);color:var(--pink);text-shadow:0 0 40px rgba(255,45,120,.9);text-align:center;z-index:1;animation:lovePulse2 2s ease-in-out infinite alternate}
+@keyframes lovePulse2{from{text-shadow:0 0 20px rgba(255,45,120,.5)}to{text-shadow:0 0 60px rgba(255,45,120,1),0 0 100px rgba(255,45,120,.5)}}
+
+.hf-close{background:rgba(255,45,120,.15);border:2px solid rgba(255,45,120,.4);color:var(--hot);border-radius:50px;padding:.6rem 2rem;font-family:'Fredoka One',cursive;font-size:1rem;cursor:pointer;transition:background .2s;letter-spacing:.05em;z-index:1}
+.hf-close:hover{background:rgba(255,45,120,.35)}
+
+footer{text-align:center;padding:2rem;color:rgba(255,255,255,.18);font-size:.72rem;letter-spacing:.2em;position:relative;z-index:10}
+
+/* ── RESPONSIVE ────────────────────────────────── */
+@media(max-width:600px){
+  .open-book{ height:min(300px,60vw) }
+  .book-title{ font-size:1.4rem }
+  .custom-msg-card{ padding:1.5rem }
+  #photobook{ padding:2rem 1rem }
+}
+@media(max-width:400px){
+  .req-card{ padding:1.5rem 1rem }
+  .req-title{ font-size:1.5rem }
+}
