@@ -1,6 +1,6 @@
 // api/proxy.js — Vercel serverless function (CommonJS — works on all Vercel plans)
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxkFWtau_RwS5xKCdXZ5d6XzNqvnNJnejvOuhXr947xDc0A6XtGDQXLrORjjxjbL940/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbznOWf7cnikmA7lyCNLEkLXnhsRDu3nH-7V0lreqlGPZvKiLAXN1XiEVjWzR5Wae5KN/exec';
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
