@@ -4,5 +4,6 @@
       "memory": 128,
       "maxDuration": 30
     }
-  }
+  },
+  "rewrites": []
 }

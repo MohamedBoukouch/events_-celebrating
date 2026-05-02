@@ -1,50 +1,58 @@
-// api/proxy.js  — Vercel serverless function
-// Proxies all requests to Google Apps Script, adding proper CORS headers.
-// Deploy this file to your Vercel project under /api/proxy.js
+// api/proxy.js — Vercel serverless function (CommonJS — works on all Vercel plans)
 
-export default async function handler(req, res) {
-  // Allow your Vercel frontend to call this proxy
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxkFWtau_RwS5xKCdXZ5d6XzNqvnNJnejvOuhXr947xDc0A6XtGDQXLrORjjxjbL940/exec';
+
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Handle preflight
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxkFWtau_RwS5xKCdXZ5d6XzNqvnNJnejvOuhXr947xDc0A6XtGDQXLrORjjxjbL940/exec';
-
   try {
-    let gasResponse;
+    let gasRes;
 
     if (req.method === 'GET') {
-      // Forward all query params to GAS
-      const params = new URLSearchParams(req.query).toString();
-      const url    = params ? `${GAS_URL}?${params}` : GAS_URL;
-      gasResponse  = await fetch(url);
+      const params = new URLSearchParams();
+      Object.entries(req.query || {}).forEach(([k, v]) => params.set(k, String(v)));
+      const url = GAS_URL + '?' + params.toString();
 
-    } else if (req.method === 'POST') {
-      // Forward POST body as form-encoded to GAS
+      gasRes = await fetch(url, { redirect: 'follow' });
+
+    } else {
+      // POST — body already parsed as JSON by Vercel, re-encode as form
       const body = req.body || {};
-      const formBody = Object.entries(body)
-        .map(([k, v]) => {
-          const val = typeof v === 'object' ? JSON.stringify(v) : String(v);
-          return encodeURIComponent(k) + '=' + encodeURIComponent(val);
-        })
-        .join('&');
+      const formParts = [];
+      Object.entries(body).forEach(([k, v]) => {
+        const val = (v !== null && typeof v === 'object') ? JSON.stringify(v) : String(v == null ? '' : v);
+        formParts.push(encodeURIComponent(k) + '=' + encodeURIComponent(val));
+      });
 
-      gasResponse = await fetch(GAS_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body:    formBody
+      gasRes = await fetch(GAS_URL, {
+        method:   'POST',
+        headers:  { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:     formParts.join('&'),
+        redirect: 'follow'
       });
     }
 
-    const data = await gasResponse.json();
-    return res.status(200).json(data);
+    const text = await gasRes.text();
+
+    // Try to parse as JSON
+    try {
+      const json = JSON.parse(text);
+      return res.status(200).json(json);
+    } catch (_) {
+      // GAS returned HTML — almost always means wrong deployment settings
+      return res.status(502).json({
+        error: 'GAS returned HTML instead of JSON. Re-deploy your Apps Script as: Execute as ME + Anyone.',
+        preview: text.substring(0, 300)
+      });
+    }
 
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Proxy internal error: ' + err.message });
   }
-}
+};
