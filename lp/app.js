@@ -4,7 +4,7 @@
 
 // ── CONFIG — must match admin/app.js ─────────────────────
 const LP_CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbxkFWtau_RwS5xKCdXZ5d6XzNqvnNJnejvOuhXr947xDc0A6XtGDQXLrORjjxjbL940/exec'
+  API_URL: 'https://events-celebrating.vercel.app/api/proxy'
 };
 
 // ── PAGE INIT ─────────────────────────────────────────────
