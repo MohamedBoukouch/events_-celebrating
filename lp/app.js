@@ -415,27 +415,40 @@ function renderReqPreviews(){
   `).join('');
 }
 
-async function submitRequest(){
-  const name=document.getElementById('req-name').value.trim();
-  const email=document.getElementById('req-email').value.trim();
-  const msg=document.getElementById('req-message').value.trim();
-  if(!name){ alert('Please enter your name'); return; }
-  const btn=document.getElementById('req-submit-btn');
-  btn.disabled=true;btn.textContent='Sending... 💌';
-  // Convert images to base64 strings for storage
-  const imageData=reqImages.map(i=>i.base64);
-  try{
-    const res=await fetch(LP_CONFIG.API_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'submitRequest',name,email,message:msg,images:imageData})
+async function submitRequest() {
+  const name    = document.getElementById('req-name').value.trim();
+  const email   = document.getElementById('req-email').value.trim();
+  const msg     = document.getElementById('req-message').value.trim();
+  if (!name) { alert('Please enter your name'); return; }
+
+  const btn = document.getElementById('req-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending... 💌';
+
+  const imageData = reqImages.map(i => i.base64);
+
+  try {
+    // ✅ KEY FIX: Same form-encoded approach, stringify arrays/objects
+    const payload = { action: 'submitRequest', name, email, message: msg, images: JSON.stringify(imageData) };
+    const formBody = Object.entries(payload)
+      .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v))
+      .join('&');
+
+    const res = await fetch(LP_CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formBody
     });
-    const data=await res.json();
-    if(data.error) throw new Error(data.error);
-    document.getElementById('req-result').innerHTML='<span style="color:#4ade80">✅ Request sent! We\'ll create your LP and share the link soon 💖</span>';
-    btn.textContent='Sent! 💖';
-  } catch(err){
-    document.getElementById('req-result').innerHTML='<span style="color:#f87171">❌ Error: '+err.message+'</span>';
-    btn.disabled=false;btn.textContent='Send Request 💌';
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    document.getElementById('req-result').innerHTML =
+      '<span style="color:#4ade80">✅ Request sent! We\'ll create your LP and share the link soon 💖</span>';
+    btn.textContent = 'Sent! 💖';
+  } catch (err) {
+    document.getElementById('req-result').innerHTML =
+      '<span style="color:#f87171">❌ Error: ' + err.message + '</span>';
+    btn.disabled = false;
+    btn.textContent = 'Send Request 💌';
   }
 }
