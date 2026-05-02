@@ -215,9 +215,19 @@ function buildSpreads(){
   return s;
 }
 
-function getSpreadHTML(img,side,idx,total){
-  if(idx===total-1&&!img) return `<div class="last-page-content"><div class="lp-heart">💖</div><div class="lp-title">The End 🌹</div><div class="lp-sub">Every moment with you<br>is a page worth keeping 💕</div></div>`;
-  if(img) return `<img src="${img}" alt="" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentElement.innerHTML='<div class=\'ph-page\'><div class=\'ph-text\'>💖</div></div>'"/>`;
+function getSpreadHTML(img, side, idx, total) {
+  if (idx === total - 1 && !img) return `
+    <div class="last-page-content">
+      <div class="lp-heart">💖</div>
+      <div class="lp-title">The End 🌹</div>
+      <div class="lp-sub">Every moment with you<br>is a page worth keeping 💕</div>
+    </div>`;
+
+  if (img) return `
+    <img src="${img}" alt=""
+      style="width:100%;height:100%;object-fit:cover;display:block"
+      onerror="this.outerHTML='<div class=phpage><div class=phtext>💖</div></div>'"/>`;
+
   return `<div class="ph-page"><div class="ph-text">💖</div></div>`;
 }
 
