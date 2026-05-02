@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Happy Birthday Mohamed 💖</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--pink:#ff2d78;--hot:#ff69b4;--dark:#04010f;--gold:#ffd700;--page-bg:#fff9f0;--page-shadow:rgba(0,0,0,0.4)}
+html{scroll-behavior:smooth}
+body{background:var(--dark);color:#fff;font-family:'Nunito',sans-serif;overflow-x:hidden;min-height:100vh}
+
+/* STARS */
+#stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d) infinite ease-in-out alternate}
+@keyframes twinkle{from{opacity:.1;transform:scale(1)}to{opacity:1;transform:scale(1.4)}}
+
+/* MATRIX */
+#matrix{position:fixed;inset:0;z-index:1;pointer-events:none}
+
+/* COUNTDOWN OVERLAY */
+#countdown-overlay{
+  position:fixed;inset:0;z-index:1000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--dark);transition:opacity .8s;
+}
+#countdown-overlay.hidden{opacity:0;pointer-events:none}
+#countdown-num{
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(9rem,28vw,20rem);
+  color:var(--pink);line-height:1;
+  text-shadow:0 0 40px rgba(255,45,120,.9),0 0 100px rgba(255,45,120,.5);
+  animation:cpop .5s ease-out;
+}
+@keyframes cpop{0%{transform:scale(2.5);opacity:0}70%{transform:scale(.92)}100%{transform:scale(1);opacity:1}}
+.cd-sub{font-size:clamp(.8rem,2.5vw,1rem);letter-spacing:.4em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-top:1rem}
+
+/* FLOATING HEARTS */
+.fheart{position:fixed;z-index:2;pointer-events:none;animation:floatUp var(--d) linear infinite;opacity:0}
+@keyframes floatUp{0%{opacity:0;transform:translateY(100vh) scale(.5) rotate(0deg)}10%{opacity:1}90%{opacity:.8}100%{opacity:0;transform:translateY(-20vh) scale(1.2) rotate(30deg)}}
+
+/* CONFETTI */
+.conf{position:fixed;top:-14px;pointer-events:none;z-index:999;border-radius:2px;animation:confFall var(--d) linear var(--dl) infinite;opacity:0}
+@keyframes confFall{0%{opacity:1;transform:translateY(0) rotate(0deg)}100%{opacity:0;transform:translateY(110vh) rotate(720deg)}}
+
+/* PAGE */
+.page{position:relative;z-index:10;opacity:0;transition:opacity .6s}
+.page.visible{opacity:1}
+
+/* HERO */
+#hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;padding:2rem 1rem;position:relative;overflow:hidden;
+}
+
+/* WORD STAGE */
+.word-stage{
+  position:absolute;top:50%;left:50%;
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(4rem,15vw,12rem);
+  color:var(--pink);
+  text-shadow:0 0 50px rgba(255,45,120,.8),0 0 100px rgba(255,45,120,.4),0 4px 20px rgba(0,0,0,.5);
+  opacity:0;transform:translate(-50%,-50%) scale(0.3);
+  transition:opacity .3s ease,transform .4s ease;
+  pointer-events:none;white-space:nowrap;letter-spacing:.05em;
+}
+.word-stage.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.word-stage.hide{opacity:0;transform:translate(-50%,-50%) scale(1.3)}
+
+/* IMAGE STAGE */
+.image-stage{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);opacity:0;
+  transition:opacity .5s ease,transform .5s ease;
+  pointer-events:none;z-index:20;
+}
+.image-stage.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.image-stage.hide{opacity:0;transform:translate(-50%,-50%) scale(0.8)}
+.image-stage img{
+  max-width:min(400px,80vw);max-height:min(400px,60vh);
+
+}
+
+
+/* ═══════════════════════════════════════
+   CARTOON BOOK SECTION
+   ═══════════════════════════════════════ */
+#photobook{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:4rem 1.5rem;
+  background:radial-gradient(ellipse at center,rgba(5,0,20,.9) 0%,transparent 80%);
+  opacity:0;transform:translateY(40px);
+  transition:opacity 1s ease,transform 1s ease;
+}
+#photobook.visible{opacity:1;transform:translateY(0)}
+.book-title{
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(1.4rem,5vw,2.8rem);
+  color:var(--pink);text-shadow:0 0 30px rgba(255,45,120,.7);
+  margin-bottom:1rem;text-align:center;
+}
+.book-hint{
+  font-size:.85rem;color:rgba(255,255,255,.4);
+  letter-spacing:.1em;margin-bottom:2.5rem;
+  text-align:center;
+}
+
+/* BOOK CLOSED STATE */
+.book-closed-wrap{
+  position:relative;cursor:pointer;
+  transition:transform .3s;
+  display:flex;flex-direction:column;align-items:center;
+}
+.book-closed-wrap:hover{transform:scale(1.04) rotate(-1deg)}
+.book-closed-wrap:hover .book-closed{box-shadow:0 30px 80px rgba(255,45,120,.6),inset 0 0 40px rgba(255,45,120,.15)}
+.book-closed{
+  width:min(260px,80vw);
+  height:min(340px,55vw);
+  background:linear-gradient(135deg,#c00050 0%,#8b0030 40%,#6b0025 100%);
+  border-radius:6px 18px 18px 6px;
+  box-shadow:0 20px 60px rgba(255,45,120,.4),-6px 0 0 rgba(0,0,0,.5),inset -4px 0 8px rgba(0,0,0,.3);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1rem;position:relative;overflow:hidden;
+  transition:box-shadow .3s;
+}
+.book-closed::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:22px;
+  background:linear-gradient(90deg,#5a001a,#8b0030,#5a001a);
+  border-radius:6px 0 0 6px;
+}
+.book-closed::after{
+  content:'';position:absolute;left:18px;top:0;bottom:0;width:3px;
+  background:rgba(0,0,0,.4);
+}
+.book-closed-title{
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(1rem,4vw,1.6rem);
+  color:#ffe0ee;text-align:center;padding:0 2rem;
+  text-shadow:0 2px 8px rgba(0,0,0,.5);
+  position:relative;z-index:1;
+}
+.book-closed-heart{
+  font-size:clamp(2rem,7vw,3.5rem);
+  animation:heartBeat 1.4s ease-in-out infinite;
+  position:relative;z-index:1;
+  filter:drop-shadow(0 0 20px rgba(255,45,120,.8));
+}
+@keyframes heartBeat{0%,100%{transform:scale(1)}14%{transform:scale(1.15)}28%{transform:scale(1)}42%{transform:scale(1.07)}56%{transform:scale(1)}}
+.click-hint{
+  margin-top:1.2rem;
+  font-family:'Fredoka One',cursive;
+  font-size:.9rem;
+  color:rgba(255,105,180,.6);
+  letter-spacing:.1em;
+  animation:blink 1.5s ease-in-out infinite alternate;
+}
+@keyframes blink{from{opacity:.3}to{opacity:1}}
+
+/* BOOK OPEN STATE - 3D FLIP BOOK */
+.book-open-wrap{
+  display:none;flex-direction:column;align-items:center;gap:1.5rem;
+}
+.book-open-wrap.active{display:flex}
+
+/* THE OPEN BOOK */
+.open-book{
+  width:min(700px,95vw);
+  height:min(460px,60vw);
+  position:relative;
+  perspective:2000px;
+  cursor:default;
+}
+.book-base{
+  width:100%;height:100%;
+  position:relative;
+  transform-style:preserve-3d;
+}
+
+/* BOOK PAGES */
+.b-page{
+  position:absolute;top:0;height:100%;width:50%;
+  transform-origin:left center;
+  transform-style:preserve-3d;
+  transition:transform 0.7s cubic-bezier(0.645, 0.045, 0.355, 1.000);
+  cursor:pointer;
+}
+.b-page.right-page{
+  left:50%;
+  transform-origin:left center;
+}
+
+/* Page faces */
+.b-page-front,.b-page-back{
+  position:absolute;inset:0;
+  backface-visibility:hidden;
+  border-radius:0 12px 12px 0;
+  overflow:hidden;
+}
+.b-page-front{
+  background:var(--page-bg);
+  transform:rotateY(0deg);
+}
+.b-page-back{
+  background:var(--page-bg);
+  transform:rotateY(180deg);
+  border-radius:12px 0 0 12px;
+}
+.b-page-front img,.b-page-back img{
+  width:100%;height:100%;
+  object-fit:cover;display:block;
+}
+
+/* Static pages (left half always shown) */
+.static-left{
+  position:absolute;left:0;top:0;
+  width:50%;height:100%;
+  border-radius:12px 0 0 12px;
+  overflow:hidden;
+  background:var(--page-bg);
+  z-index:0;
+}
+.static-left img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* Book cover / back */
+.book-cover{
+  position:absolute;inset:0;width:100%;height:100%;
+  background:linear-gradient(135deg,#c00050 0%,#8b0030 40%,#6b0025 100%);
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:1rem;
+  z-index:100;pointer-events:none;
+}
+.book-cover-title{
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(1.2rem,4vw,2rem);
+  color:#ffe0ee;text-align:center;padding:0 2rem;
+  text-shadow:0 2px 8px rgba(0,0,0,.5);
+}
+
+/* Book spine */
+.book-spine-el{
+  position:absolute;left:50%;top:0;bottom:0;
+  width:8px;
+  background:linear-gradient(90deg,rgba(80,0,30,.9),rgba(180,0,60,.6),rgba(80,0,30,.9));
+  transform:translateX(-50%);
+  z-index:50;pointer-events:none;
+  box-shadow:0 0 10px rgba(0,0,0,.5);
+}
+
+/* Shadow under book */
+.book-shadow{
+  width:min(660px,90vw);
+  height:30px;
+  background:radial-gradient(ellipse,rgba(255,45,120,.25) 0%,transparent 70%);
+  margin-top:-10px;
+}
+
+/* Page number */
+.page-num{
+  position:absolute;bottom:10px;
+  font-family:'Fredoka One',cursive;
+  font-size:.8rem;color:rgba(0,0,0,.3);
+}
+.page-num.left{left:15px}
+.page-num.right{right:15px}
+
+/* DRAG INDICATOR */
+.drag-arrow{
+  position:absolute;top:50%;
+  transform:translateY(-50%);
+  font-size:2rem;
+  opacity:0.25;
+  transition:opacity .3s;
+  pointer-events:none;
+  animation:arrowPulse 1.5s ease-in-out infinite alternate;
+}
+.drag-arrow.left-arrow{left:12px}
+.drag-arrow.right-arrow{right:12px}
+@keyframes arrowPulse{from{opacity:.15}to{opacity:.5}}
+
+/* Book progress */
+.book-progress{
+  display:flex;gap:.4rem;align-items:center;
+}
+.prog-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:rgba(255,45,120,.25);
+  transition:background .3s,transform .3s;
+}
+.prog-dot.active{background:var(--pink);transform:scale(1.3)}
+
+/* Closing animation */
+.open-book.closing{
+  animation:bookClose 0.8s ease-in-out forwards;
+}
+@keyframes bookClose{
+  0%{transform:scale(1) rotateX(0deg);opacity:1}
+  50%{transform:scale(0.9) rotateX(5deg);opacity:.8}
+  100%{transform:scale(0.6) rotateX(15deg);opacity:0}
+}
+
+/* Placeholder page */
+.ph-page{
+  width:100%;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:.7rem;color:rgba(0,0,0,.2);font-size:.8rem;
+  background:linear-gradient(135deg,#fff9f0,#ffe8f0);
+}
+.ph-page svg{width:40px;height:40px;opacity:.2}
+.ph-page .ph-text{font-family:'Fredoka One',cursive;font-size:1rem}
+
+/* LAST PAGE - sweet message */
+.last-page-content{
+  width:100%;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:1.5rem;
+  background:linear-gradient(135deg,#fff0f5,#ffe0ee);
+  gap:.7rem;text-align:center;
+}
+.last-page-content .lp-heart{font-size:2.5rem;animation:heartBeat 1.4s ease-in-out infinite}
+.last-page-content .lp-title{font-family:'Fredoka One',cursive;font-size:clamp(1rem,3vw,1.5rem);color:#c00050}
+.last-page-content .lp-sub{font-size:clamp(.7rem,2vw,.9rem);color:rgba(150,0,60,.6);line-height:1.6}
+
+/* HEART FORMATION */
+#heart-formation{
+  display:none;
+  position:fixed;inset:0;z-index:500;
+  align-items:center;justify-content:center;
+  flex-direction:column;gap:1.5rem;
+  background:radial-gradient(ellipse at center,#0d0020 0%,#04010f 100%);
+  animation:fadInHF .8s ease forwards;
+  overflow:hidden;
+}
+#heart-formation.show{display:flex}
+@keyframes fadInHF{from{opacity:0}to{opacity:1}}
+
+/* Stars inside overlay */
+#hf-stars{position:absolute;inset:0;pointer-events:none;z-index:0}
+
+.heart-canvas-wrap{
+  position:relative;
+  /* size set by JS */
+  flex-shrink:0;
+  z-index:1;
+}
+
+/* Each Polaroid card */
+.hf-card{
+  position:absolute;
+  background:#fff;
+  padding:5px 5px 20px 5px;
+  border-radius:4px;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.15),
+    0 6px 20px rgba(0,0,0,.7),
+    0 0 18px rgba(255,45,120,.35);
+  transition:
+    opacity .5s ease,
+    transform .5s cubic-bezier(0.175,0.885,0.32,1.275),
+    box-shadow .3s;
+  opacity:0;
+  transform:scale(0) rotate(0deg);
+  cursor:pointer;
+  overflow:hidden;
+}
+.hf-card.placed{
+  opacity:1;
+}
+.hf-card:hover{
+  box-shadow:
+    0 0 0 2px rgba(255,45,120,.6),
+    0 8px 30px rgba(0,0,0,.8),
+    0 0 35px rgba(255,45,120,.7);
+  z-index:10;
+}
+.hf-card img{
+  width:100%;height:100%;
+  object-fit:cover;display:block;
+  border-radius:2px;
+}
+
+/* Glowing heart outline SVG behind cards */
+#hf-heart-glow{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  pointer-events:none;
+  z-index:0;
+  opacity:0;
+  transition:opacity 1s ease;
+}
+#hf-heart-glow.visible{opacity:1}
+
+.hf-title{
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(1.2rem,4vw,2.2rem);
+  color:var(--pink);
+  text-shadow:0 0 40px rgba(255,45,120,.9);
+  text-align:center;
+  z-index:1;
+  animation:lovePulse2 2s ease-in-out infinite alternate;
+}
+@keyframes lovePulse2{from{text-shadow:0 0 20px rgba(255,45,120,.5)}to{text-shadow:0 0 60px rgba(255,45,120,1),0 0 100px rgba(255,45,120,.5)}}
+.hf-close{
+  background:rgba(255,45,120,.15);
+  border:2px solid rgba(255,45,120,.4);
+  color:var(--hot);
+  border-radius:50px;
+  padding:.6rem 2rem;
+  font-family:'Fredoka One',cursive;
+  font-size:1rem;
+  cursor:pointer;
+  transition:background .2s;
+  letter-spacing:.05em;
+  z-index:1;
+}
+.hf-close:hover{background:rgba(255,45,120,.35)}
+
+footer{text-align:center;padding:2rem;color:rgba(255,255,255,.18);font-size:.72rem;letter-spacing:.2em;position:relative;z-index:10}
+</style>
+</head>
+<body>
+<div id="stars"></div>
+<canvas id="matrix"></canvas>
+<div id="hearts-c"></div>
+<div id="conf-c"></div>
+
+<!-- COUNTDOWN -->
+<div id="countdown-overlay">
+  <div id="countdown-num">3</div>
+  <p class="cd-sub">Get ready...</p>
+</div>
+
+<!-- MAIN PAGE -->
+<div class="page" id="main-page">
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="word-stage" id="word-happy">HAPPY</div>
+    <div class="word-stage" id="word-birthday">BIRTHDAY</div>
+    <div class="word-stage" id="word-mohamed">MOHAMED</div>
+    <div class="image-stage" id="stage-love">
+      <img src="images/love.png" alt="Love"/>
+    </div>
+    <div class="image-stage" id="stage-happy">
+      <img src="images/happy.gif" alt="Happy"/>
+    </div>
+  </section>
+
+  <!-- PHOTO BOOK / GALLERY -->
+  <section id="photobook">
+    <h2 class="book-title">📖 Our Memories 📖</h2>
+    <p class="book-hint">✨ Click the book to open it • Drag pages to turn ✨</p>
+
+    <!-- CLOSED BOOK -->
+    <div class="book-closed-wrap" id="closed-book" onclick="openBook()">
+      <div class="book-closed">
+        <div class="book-closed-heart">💕</div>
+        <div class="book-closed-title">Our Memories</div>
+        <div class="book-closed-heart" style="font-size:1.2rem">✨</div>
+      </div>
+      <div class="click-hint">📖 Click to open</div>
+    </div>
+
+    <!-- OPEN BOOK -->
+    <div class="book-open-wrap" id="open-book-wrap">
+      <div class="open-book" id="open-book">
+
+        <!-- Static left side (shows current left page) -->
+        <div class="static-left" id="static-left">
+          <div class="ph-page">
+            <div class="ph-text">📖</div>
+          </div>
+        </div>
+
+        <!-- Flippable right page -->
+        <div class="b-page right-page" id="flip-page"
+             onmousedown="startDrag(event)"
+             ontouchstart="startDrag(event)">
+          <div class="b-page-front" id="flip-front">
+            <div class="ph-page"><div class="ph-text">📖</div></div>
+          </div>
+          <div class="b-page-back" id="flip-back">
+            <div class="ph-page"><div class="ph-text">📖</div></div>
+          </div>
+        </div>
+
+        <div class="book-spine-el"></div>
+
+        <!-- Drag arrows -->
+        <div class="drag-arrow left-arrow" id="arrow-left">‹</div>
+        <div class="drag-arrow right-arrow" id="arrow-right">›</div>
+      </div>
+
+      <div class="book-shadow"></div>
+
+      <!-- Progress dots -->
+      <div class="book-progress" id="book-progress"></div>
+    </div>
+  </section>
+
+</div>
+
+<!-- HEART FORMATION OVERLAY -->
+<div id="heart-formation">
+  <div id="hf-stars"></div>
+  <div class="hf-title">💖 Forever in My Heart 💖</div>
+  <div class="heart-canvas-wrap" id="heart-canvas">
+    <svg id="hf-heart-glow" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="8" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <path id="hf-heart-path"
+        fill="none" stroke="#ff2d78" stroke-width="3"
+        filter="url(#glow)"
+        opacity="0.7"/>
+    </svg>
+  </div>
+  <button class="hf-close" onclick="closeHeartFormation()">✕ Close</button>
+</div>
+
+<footer>made with 💖 just for you</footer>
+
+<script>
+/* ═══════════════════════════════════
+   IMAGES CONFIG
+   ═══════════════════════════════════ */
+const BOOK_IMAGES = [
+  "images/1.png",
+  "images/2.png",
+  "images/3.png",
+  "images/4.png",
+  "images/5.png",
+  "images/6.png",
+];
+
+/* ── STARS ── */
+const starsEl = document.getElementById('stars');
+for(let i = 0; i < 200; i++){
+  const s = document.createElement('div');
+  s.className = 'star';
+  const sz = Math.random()*3+1;
+  s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*3+1).toFixed(1)}s;animation-delay:${(Math.random()*3).toFixed(1)}s`;
+  starsEl.appendChild(s);
+}
+
+/* ── MATRIX ── */
+const cv = document.getElementById('matrix'), ctx = cv.getContext('2d');
+function resizeCv(){ cv.width = window.innerWidth; cv.height = window.innerHeight; }
+resizeCv(); window.addEventListener('resize', resizeCv);
+const chars = 'ｦｧｨｩｪｫｬｭｮｯｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789ABCDEF♥♡❤';
+const fs = 16; let cols, drops;
+function initM(){ cols = Math.floor(cv.width/fs); drops = Array(cols).fill(1); }
+initM(); window.addEventListener('resize', initM);
+function drawM(){
+  ctx.fillStyle = 'rgba(4,1,15,0.08)'; ctx.fillRect(0,0,cv.width,cv.height);
+  for(let i = 0; i < drops.length; i++){
+    const ch = chars[Math.floor(Math.random()*chars.length)];
+    ctx.fillStyle = Math.random()>.85 ? '#ff2d78' : `rgba(255,${Math.floor(Math.random()*60+20)},${Math.floor(Math.random()*80+40)},${0.5+Math.random()*0.5})`;
+    ctx.font = `${fs}px monospace`; ctx.fillText(ch, i*fs, drops[i]*fs);
+    if(drops[i]*fs > cv.height && Math.random()>.975) drops[i] = 0;
+    drops[i]++;
+  }
+}
+setInterval(drawM, 45);
+
+/* ── HEARTS ── */
+const heartsC = document.getElementById('hearts-c');
+['❤️','💕','💖','💗','💓','💞','🌹','✨'].forEach((em, i) => {
+  for(let j = 0; j < 2; j++){
+    const h = document.createElement('div'); h.className = 'fheart';
+    h.style.cssText = `left:${Math.random()*100}%;--d:${(Math.random()*8+6).toFixed(1)}s;animation-delay:${(Math.random()*9).toFixed(1)}s;font-size:${(Math.random()*1.4+.7).toFixed(1)}rem`;
+    h.textContent = em; heartsC.appendChild(h);
+  }
+});
+
+/* ── CONFETTI ── */
+const confC = document.getElementById('conf-c');
+['#ff2d78','#ffd700','#4ade80','#38bdf8','#a855f7','#ff9f1a','#ff69b4'].forEach(col => {
+  for(let i = 0; i < 6; i++){
+    const c = document.createElement('div'); c.className = 'conf';
+    c.style.cssText = `left:${Math.random()*100}%;background:${col};--d:${(Math.random()*4+3).toFixed(1)}s;--dl:${(Math.random()*6).toFixed(1)}s;width:${Math.floor(Math.random()*8+4)}px;height:${Math.floor(Math.random()*8+4)}px;border-radius:${Math.random()>.5?'50%':'2px'}`;
+    confC.appendChild(c);
+  }
+});
+
+/* ── COUNTDOWN & SEQUENCE ── */
+const overlay = document.getElementById('countdown-overlay');
+const numEl = document.getElementById('countdown-num');
+const mainPage = document.getElementById('main-page');
+const wordHappy = document.getElementById('word-happy');
+const wordBirthday = document.getElementById('word-birthday');
+const wordMohamed = document.getElementById('word-mohamed');
+const stageLove = document.getElementById('stage-love');
+const stageHappy = document.getElementById('stage-happy');
+const photobook = document.getElementById('photobook');
+
+function runCountdown(){
+  const steps = ['3','2','1','GO!'];
+  let i = 0;
+  function tick(){
+    numEl.textContent = steps[i];
+    numEl.style.animation = 'none'; void numEl.offsetWidth;
+    numEl.style.animation = 'cpop .5s ease-out';
+    i++;
+    if(i < steps.length){ setTimeout(tick, 1000); }
+    else {
+      overlay.classList.add('hidden');
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        mainPage.classList.add('visible');
+        startSequence();
+      }, 800);
+    }
+  }
+  tick();
+}
+setTimeout(runCountdown, 400);
+
+function startSequence(){
+  // 1. HAPPY
+  wordHappy.classList.add('show');
+  setTimeout(() => {
+    wordHappy.classList.remove('show'); wordHappy.classList.add('hide');
+    // 2. BIRTHDAY
+    setTimeout(() => {
+      wordBirthday.classList.add('show');
+      setTimeout(() => {
+        wordBirthday.classList.remove('show'); wordBirthday.classList.add('hide');
+        // 3. MOHAMED
+        setTimeout(() => {
+          wordMohamed.classList.add('show');
+          setTimeout(() => {
+            wordMohamed.classList.remove('show'); wordMohamed.classList.add('hide');
+            // 4. love.png
+            setTimeout(() => {
+              stageLove.classList.add('show');
+              setTimeout(() => {
+                stageLove.classList.remove('show'); stageLove.classList.add('hide');
+                // 5. happy.gif
+                setTimeout(() => {
+                  stageHappy.classList.add('show');
+                  setTimeout(() => {
+                    stageHappy.classList.remove('show'); stageHappy.classList.add('hide');
+                    // 6. Scroll directly to book
+                    setTimeout(() => {
+                      photobook.classList.add('visible');
+                      photobook.scrollIntoView({ behavior: 'smooth' });
+                    }, 400);
+                  }, 2000);
+                }, 300);
+              }, 1000);
+            }, 300);
+          }, 1000);
+        }, 300);
+      }, 1000);
+    }, 300);
+  }, 1000);
+}
+
+/* ═══════════════════════════════════════════════════
+   CARTOON BOOK ENGINE
+   ═══════════════════════════════════════════════════ */
+
+// Pages structure:
+// pairs of [left, right] images
+// We always show 2 images at once (spread)
+// Page 0: cover spread (special)
+// Then pairs of images
+
+let bookOpen = false;
+let currentSpread = 0; // 0 = first spread
+let isAnimating = false;
+let totalSpreads = 0;
+
+const closedBook = document.getElementById('closed-book');
+const openBookWrap = document.getElementById('open-book-wrap');
+const openBookEl = document.getElementById('open-book');
+const staticLeft = document.getElementById('static-left');
+const flipPage = document.getElementById('flip-page');
+const flipFront = document.getElementById('flip-front');
+const flipBack = document.getElementById('flip-back');
+const bookProgress = document.getElementById('book-progress');
+const arrowLeft = document.getElementById('arrow-left');
+const arrowRight = document.getElementById('arrow-right');
+
+// Build spreads: [leftImg, rightImg] (null = blank/last)
+function buildSpreads(){
+  const spreads = [];
+  // Images go in pairs
+  for(let i = 0; i < BOOK_IMAGES.length; i += 2){
+    spreads.push([
+      BOOK_IMAGES[i] || null,
+      BOOK_IMAGES[i+1] || null
+    ]);
+  }
+  // Add a final "The End" spread
+  spreads.push([null, null]); // last page
+  return spreads;
+}
+
+let spreads = [];
+
+function getSpreadHTML(img, side, spreadIdx, totalSpreads){
+  const isLast = spreadIdx === totalSpreads - 1;
+  if(isLast && !img){
+    return `<div class="last-page-content">
+      <div class="lp-heart">💖</div>
+      <div class="lp-title">The End 🌹</div>
+      <div class="lp-sub">Every moment with you<br>is a page worth keeping 💕</div>
+    </div>`;
+  }
+  if(img){
+    return `<img src="${img}" alt="" style="width:100%;height:100%;object-fit:cover;display:block" 
+            onerror="this.parentElement.innerHTML='<div class=\'ph-page\'><div class=\'ph-text\'>💖</div></div>'"/>`;
+  }
+  return `<div class="ph-page"><div class="ph-text">💖</div></div>`;
+}
+
+function renderSpread(idx, animate, direction){
+  if(!spreads.length) return;
+  const spread = spreads[idx];
+  const isLast = idx === spreads.length - 1;
+
+  // Left page (static)
+  staticLeft.innerHTML = getSpreadHTML(spread[0], 'left', idx, spreads.length);
+
+  // Right page (front = current, back = blank during transition)
+  flipFront.innerHTML = getSpreadHTML(spread[1], 'right', idx, spreads.length);
+
+  // Update arrows
+  arrowLeft.style.opacity = idx > 0 ? '0.4' : '0.1';
+  arrowRight.style.opacity = idx < spreads.length - 1 ? '0.4' : '0.1';
+
+  // Update progress dots
+  const dots = bookProgress.querySelectorAll('.prog-dot');
+  dots.forEach((d, i) => {
+    d.classList.toggle('active', i === idx);
+  });
+}
+
+function buildProgressDots(){
+  bookProgress.innerHTML = '';
+  spreads.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'prog-dot' + (i === 0 ? ' active' : '');
+    bookProgress.appendChild(d);
+  });
+}
+
+function openBook(){
+  if(bookOpen) return;
+  bookOpen = true;
+  spreads = buildSpreads();
+  totalSpreads = spreads.length;
+  currentSpread = 0;
+
+  // Swap closed → open with animation
+  closedBook.style.transform = 'scale(0.8) rotateY(15deg)';
+  closedBook.style.opacity = '0';
+  closedBook.style.transition = 'all 0.4s ease';
+
+  setTimeout(() => {
+    closedBook.style.display = 'none';
+    openBookWrap.classList.add('active');
+    buildProgressDots();
+    renderSpread(0, false, null);
+    // Animate open
+    openBookEl.style.opacity = '0';
+    openBookEl.style.transform = 'scale(0.7) rotateX(10deg)';
+    openBookEl.style.transition = 'all 0.6s cubic-bezier(0.175,0.885,0.32,1.275)';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        openBookEl.style.opacity = '1';
+        openBookEl.style.transform = 'scale(1) rotateX(0)';
+      });
+    });
+  }, 400);
+}
+
+/* ── DRAG / SWIPE TO TURN PAGE ── */
+let dragStartX = 0;
+let isDragging = false;
+let dragProgress = 0;
+const FLIP_THRESHOLD = 80; // px needed to trigger flip
+
+function startDrag(e){
+  if(isAnimating) return;
+  isDragging = true;
+  dragStartX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+  dragProgress = 0;
+  flipPage.style.transition = 'none';
+  document.addEventListener('mousemove', onDrag);
+  document.addEventListener('mouseup', endDrag);
+  document.addEventListener('touchmove', onDrag, {passive:false});
+  document.addEventListener('touchend', endDrag);
+}
+
+function onDrag(e){
+  if(!isDragging) return;
+  if(e.cancelable) e.preventDefault();
+  const x = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+  dragProgress = dragStartX - x;
+  // Visual drag feedback: rotate flip page
+  const pct = Math.max(0, Math.min(1, dragProgress / 200));
+  const angle = pct * 180;
+  if(dragProgress > 0 && currentSpread < spreads.length - 1){
+    // Flip forward
+    flipPage.style.transform = `rotateY(-${angle}deg)`;
+    flipPage.style.transition = 'none';
+  } else if(dragProgress < 0 && currentSpread > 0){
+    // Drag back hint (just wobble)
+    const backAngle = Math.min(20, Math.abs(dragProgress) * 0.2);
+    flipPage.style.transform = `rotateY(${backAngle}deg)`;
+  }
+}
+
+function endDrag(e){
+  if(!isDragging) return;
+  isDragging = false;
+  document.removeEventListener('mousemove', onDrag);
+  document.removeEventListener('mouseup', endDrag);
+  document.removeEventListener('touchmove', onDrag);
+  document.removeEventListener('touchend', endDrag);
+
+  flipPage.style.transition = '';
+
+  if(dragProgress > FLIP_THRESHOLD && currentSpread < spreads.length - 1){
+    flipForward();
+  } else if(dragProgress < -FLIP_THRESHOLD && currentSpread > 0){
+    flipBackward();
+  } else {
+    // Snap back
+    flipPage.style.transition = 'transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275)';
+    flipPage.style.transform = 'rotateY(0deg)';
+  }
+}
+
+function flipForward(){
+  if(isAnimating || currentSpread >= spreads.length - 1) return;
+  isAnimating = true;
+
+  // Prep back face with next spread's left content
+  const nextSpread = spreads[currentSpread + 1];
+  flipBack.innerHTML = getSpreadHTML(nextSpread[0], 'left', currentSpread + 1, spreads.length);
+  flipBack.style.borderRadius = '12px 0 0 12px';
+
+  // Animate flip
+  flipPage.style.transition = 'transform 0.65s cubic-bezier(0.645,0.045,0.355,1.000)';
+  flipPage.style.transform = 'rotateY(-180deg)';
+
+  setTimeout(() => {
+    currentSpread++;
+    renderSpread(currentSpread, false, null);
+    flipPage.style.transition = 'none';
+    flipPage.style.transform = 'rotateY(0deg)';
+    isAnimating = false;
+
+    // Check if last spread
+    if(currentSpread === spreads.length - 1){
+      setTimeout(() => closeBook(), 2500);
+    }
+  }, 650);
+}
+
+function flipBackward(){
+  if(isAnimating || currentSpread <= 0) return;
+  isAnimating = true;
+
+  // Show previous right page on back
+  const prevSpread = spreads[currentSpread - 1];
+  flipBack.innerHTML = getSpreadHTML(prevSpread[1], 'right', currentSpread - 1, spreads.length);
+  flipBack.style.borderRadius = '0 12px 12px 0';
+
+  // Start at -180 then animate to 0
+  flipPage.style.transition = 'none';
+  flipPage.style.transform = 'rotateY(-180deg)';
+  
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      flipPage.style.transition = 'transform 0.65s cubic-bezier(0.645,0.045,0.355,1.000)';
+      flipPage.style.transform = 'rotateY(0deg)';
+    });
+  });
+
+  setTimeout(() => {
+    currentSpread--;
+    renderSpread(currentSpread, false, null);
+    isAnimating = false;
+  }, 650);
+}
+
+function closeBook(){
+  openBookEl.style.transition = 'all 0.7s cubic-bezier(0.6,-0.28,0.735,0.045)';
+  openBookEl.style.transform = 'scale(0.5) rotateX(20deg)';
+  openBookEl.style.opacity = '0';
+
+  setTimeout(() => {
+    openBookWrap.classList.remove('active');
+    closedBook.style.display = '';
+    closedBook.style.transform = 'scale(0.8) rotateY(-15deg)';
+    closedBook.style.opacity = '0';
+    closedBook.style.transition = 'all 0.5s cubic-bezier(0.175,0.885,0.32,1.275)';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        closedBook.style.transform = 'scale(1) rotateY(0)';
+        closedBook.style.opacity = '1';
+      });
+    });
+    openBookEl.style.transform = '';
+    openBookEl.style.opacity = '';
+    bookOpen = false;
+    currentSpread = 0;
+
+    // Show heart formation after a short delay
+    setTimeout(() => showHeartFormation(), 600);
+  }, 700);
+}
+
+/* ═══════════════════════════════════════
+   HEART FORMATION — POLAROID ON OUTLINE
+   ═══════════════════════════════════════ */
+
+function showHeartFormation(){
+  const hf     = document.getElementById('heart-formation');
+  const canvas = document.getElementById('heart-canvas');
+  hf.classList.add('show');
+
+  // Mini stars
+  const hfStars = document.getElementById('hf-stars');
+  hfStars.innerHTML = '';
+  for(let i=0;i<80;i++){
+    const s=document.createElement('div');s.className='star';
+    const sz=Math.random()*2+0.5;
+    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*3+1).toFixed(1)}s`;
+    hfStars.appendChild(s);
+  }
+
+  // Clear old cards
+  canvas.querySelectorAll('.hf-card').forEach(c=>c.remove());
+
+  const imgs = BOOK_IMAGES;
+  if(!imgs.length) return;
+
+  // ── responsive size ──
+  const vmin    = Math.min(window.innerWidth*0.90, window.innerHeight*0.72, 520);
+  const SIZE    = vmin;
+  canvas.style.width  = SIZE+'px';
+  canvas.style.height = SIZE+'px';
+
+  // ── heart parametric ──
+  function hXY(t){
+    return {
+      x:  16*Math.pow(Math.sin(t),3),
+      y: -(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))
+    };
+  }
+
+  // ── How many cards? aim for ~14 well-spaced ones ──
+  const NUM = 14;
+
+  // Sample NUM evenly-spaced points along the outline
+  const rawPts   = [];
+  const tangents = [];
+  for(let i=0;i<NUM;i++){
+    const t  = (i/NUM)*2*Math.PI;
+    rawPts.push(hXY(t));
+    const dt = 0.01;
+    const a  = hXY(t), b = hXY(t+dt);
+    tangents.push(Math.atan2(b.y-a.y, b.x-a.x)*180/Math.PI);
+  }
+
+  // ── bounds → canvas coords ──
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  rawPts.forEach(p=>{minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y)});
+
+  const pad  = SIZE*0.12;
+  const scX  = (SIZE-pad*2)/(maxX-minX);
+  const scY  = (SIZE-pad*2)/(maxY-minY);
+  const sc   = Math.min(scX,scY);
+  const oX   = pad+((SIZE-pad*2)-(maxX-minX)*sc)/2;
+  const oY   = pad+((SIZE-pad*2)-(maxY-minY)*sc)/2;
+  const toC  = p=>({x:oX+(p.x-minX)*sc, y:oY+(p.y-minY)*sc});
+
+  // ── card dimensions ──
+  // Big cards like in the screenshot
+  const CW   = SIZE*0.26;   // total card width
+  const CH   = SIZE*0.28;   // total card height
+  const cPad = SIZE*0.018;
+  const cBot = SIZE*0.06;   // white polaroid strip at bottom
+  const iW   = CW - cPad*2;
+  const iH   = CH - cPad - cBot;
+
+  // ── SVG glow outline ──
+  const svgEl  = document.getElementById('hf-heart-glow');
+  const pathEl = document.getElementById('hf-heart-path');
+  svgEl.setAttribute('viewBox',`0 0 ${SIZE} ${SIZE}`);
+  const svgD=[];
+  for(let i=0;i<=300;i++){
+    const t=(i/300)*2*Math.PI;
+    const p=toC(hXY(t));
+    svgD.push(i===0?`M${p.x.toFixed(1)},${p.y.toFixed(1)}`:`L${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+  }
+  pathEl.setAttribute('d',svgD.join('')+'Z');
+  pathEl.setAttribute('stroke-width','3');
+  setTimeout(()=>svgEl.classList.add('visible'),400);
+
+  // ── Place cards ──
+  rawPts.forEach((rp,i)=>{
+    const cp  = toC(rp);
+    const img = imgs[i % imgs.length];
+
+    // Tilt: roughly tangent to curve + small random wobble
+    const tilt = tangents[i] + (Math.random()-0.5)*25;
+
+    const card = document.createElement('div');
+    card.className = 'hf-card';
+    card.style.cssText=`
+      width:${CW}px;height:${CH}px;
+      left:${cp.x-CW/2}px;top:${cp.y-CH/2}px;
+      padding:${cPad}px ${cPad}px ${cBot}px ${cPad}px;
+      transform:scale(0) rotate(${tilt}deg);
+      opacity:0;
+    `;
+    card.innerHTML=`<img src="${img}" alt=""
+      style="width:${iW}px;height:${iH}px;object-fit:cover;display:block;border-radius:2px"
+      onerror="this.parentElement.style.background='#ff2d78';this.remove()"/>`;
+
+    canvas.appendChild(card);
+
+    // Staggered pop-in
+    const delay = i*100;
+    setTimeout(()=>{
+      card.style.transition=`opacity .4s ease, transform .55s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow .3s`;
+      card.style.transform =`scale(1) rotate(${tilt}deg)`;
+      card.style.opacity   ='1';
+    }, delay);
+  });
+}
+
+function closeHeartFormation(){
+  const hf    = document.getElementById('heart-formation');
+  const svgEl = document.getElementById('hf-heart-glow');
+  svgEl.classList.remove('visible');
+  hf.style.transition='opacity 0.5s';
+  hf.style.opacity='0';
+  setTimeout(()=>{
+    hf.classList.remove('show');
+    hf.style.opacity='';
+    hf.style.transition='';
+  },500);
+}
+
+// Also allow clicking right half to go forward, left half to go back
+openBookEl.addEventListener('click', function(e){
+  if(isAnimating || isDragging) return;
+  const rect = openBookEl.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const halfW = rect.width / 2;
+  if(x > halfW * 1.3){
+    flipForward();
+  } else if(x < halfW * 0.7 && currentSpread > 0){
+    flipBackward();
+  }
+});
+
+// Touch swipe on static left too
+staticLeft.addEventListener('touchstart', startDrag);
+staticLeft.addEventListener('mousedown', startDrag);
+</script>
+</body>
+</html>
