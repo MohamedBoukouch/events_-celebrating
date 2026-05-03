@@ -63,9 +63,7 @@
       </div>
     </header>
 
-    <!-- ═══════════════════════════════════════
-         TAB: CREATE LP
-         ═══════════════════════════════════════ -->
+    <!-- TAB: CREATE LP -->
     <section class="tab-content active" id="tab-create">
       <div class="section-header">
         <h2>Create New LP</h2>
@@ -108,6 +106,7 @@
             <span class="result-icon">🎉</span>
             <h3>LP Generated!</h3>
           </div>
+
           <div class="result-field">
             <label>LP Link</label>
             <div class="copy-row">
@@ -115,32 +114,32 @@
               <button class="copy-btn" onclick="copyText('result-link')">Copy</button>
             </div>
           </div>
+
           <div class="result-field">
             <label>QR Code</label>
             <div class="qr-wrap" id="qr-wrap"></div>
             <button class="btn-secondary" onclick="downloadQR()" style="margin-top:.8rem;width:100%">⬇ Download QR</button>
           </div>
+
           <div class="result-field">
             <label>Share via</label>
             <div class="share-btns">
               <button class="share-btn whatsapp" onclick="shareWA()">WhatsApp</button>
-              <button class="share-btn copy2"    onclick="copyText('result-link')">Copy Link</button>
+              <button class="share-btn copy2" onclick="copyText('result-link')">Copy Link</button>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ═══════════════════════════════════════
-         TAB: ALL CLIENTS
-         ═══════════════════════════════════════ -->
+    <!-- TAB: ALL CLIENTS -->
     <section class="tab-content" id="tab-clients">
       <div class="section-header">
         <h2>All LPs</h2>
         <p>Manage all generated birthday LPs</p>
       </div>
       <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table" id="clients-table">
           <thead>
             <tr>
               <th>Name</th>
@@ -157,29 +156,27 @@
       </div>
     </section>
 
-    <!-- ═══════════════════════════════════════
-         TAB: REQUESTS
-         Plain form. Newest first. No images.
-         Admin writes message when approving.
-         ═══════════════════════════════════════ -->
+    <!-- TAB: REQUESTS -->
     <section class="tab-content" id="tab-requests">
       <div class="section-header">
         <h2>LP Requests</h2>
-        <p>Users who requested their own birthday LP — newest first</p>
+        <p>Users who requested their own birthday LP</p>
       </div>
       <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table" id="requests-table">
           <thead>
             <tr>
               <th>Name</th>
-              <th>Phone / Email</th>
+              <th>WhatsApp</th>
+              <th>Images</th>
+              <th>Message</th>
               <th>Date</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="requests-tbody">
-            <tr><td colspan="5" class="loading-row">Loading...</td></tr>
+            <tr><td colspan="7" class="loading-row">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -215,49 +212,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="document.getElementById('edit-modal').style.display='none'">Cancel</button>
-      <button class="btn-primary"   onclick="saveEdit()">Save Changes</button>
-    </div>
-  </div>
-</div>
-
-<!-- APPROVE REQUEST MODAL -->
-<div class="modal-overlay" id="approve-modal" style="display:none" onclick="closeModal(event)">
-  <div class="modal-card">
-    <div class="modal-header">
-      <h3>Approve Request & Create LP</h3>
-      <button class="modal-close" onclick="document.getElementById('approve-modal').style.display='none'">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="approve-req-id"/>
-      <input type="hidden" id="approve-whatsapp"/>
-      <div class="form-group">
-        <label>Person's Name</label>
-        <input type="text" id="approve-name" class="form-input" readonly/>
-      </div>
-      <div class="form-group">
-        <label>WhatsApp</label>
-        <input type="text" id="approve-wa-display" class="form-input" readonly/>
-      </div>
-      <div class="form-group">
-        <label>Custom Message for this person *</label>
-        <textarea id="approve-message" class="form-textarea" rows="4" placeholder="Write a sweet birthday message for this person..."></textarea>
-      </div>
-      <div class="form-group">
-        <label>Upload Images (up to 6)</label>
-        <div class="upload-zone" id="approve-upload-zone" onclick="document.getElementById('approve-img-input').click()">
-          <div class="upload-icon">📸</div>
-          <div class="upload-text">Click or drag images here</div>
-          <div class="upload-sub">PNG, JPG, GIF — max 5MB each</div>
-          <input type="file" id="approve-img-input" accept="image/*" multiple style="display:none" onchange="handleApproveImages(event)"/>
-        </div>
-        <div class="image-previews" id="approve-image-previews"></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="document.getElementById('approve-modal').style.display='none'">Cancel</button>
-      <button class="btn-primary"   onclick="confirmApprove()" id="approve-btn">
-        <span>✅ Approve & Create LP</span>
-      </button>
+      <button class="btn-primary" onclick="saveEdit()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -274,7 +229,7 @@
       <input type="text" id="modal-link" readonly class="copy-input" style="margin-bottom:.8rem"/>
       <div class="share-btns">
         <button class="share-btn whatsapp" id="modal-wa-btn">WhatsApp</button>
-        <button class="share-btn copy2"    onclick="copyText('modal-link')">Copy</button>
+        <button class="share-btn copy2" onclick="copyText('modal-link')">Copy</button>
       </div>
     </div>
     <div class="modal-footer">
@@ -301,6 +256,7 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- QR lib -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="admin/app.js"></script>
 </body>

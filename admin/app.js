@@ -1,15 +1,11 @@
 /* =====================================================
-   LP ADMIN DASHBOARD — admin/app.js
-   • Requests: newest first, phone number shown, NO images column
-   • After approve → show Share Link + QR buttons in row
-   • NO image upload anywhere in requests flow (except approve modal)
-   • CACHE BUSTING on all GET requests to prevent stale data
+   LP ADMIN DASHBOARD — JavaScript (FIXED)
    ===================================================== */
 
 const CONFIG = {
-  API_URL:    'https://events-celebrating.vercel.app/api/proxy',
-  IMG_URL:    'https://events-celebrating.vercel.app/api/image',
-  LP_BASE:    'https://events-celebrating.vercel.app/lp.html',
+  API_URL:  'https://events-celebrating.vercel.app/api/proxy',
+  IMG_URL:  'https://events-celebrating.vercel.app/api/image',  // image proxy
+  LP_BASE:  'https://events-celebrating.vercel.app/lp.html',
   ADMIN_PASS: '0000'
 };
 
@@ -18,14 +14,13 @@ let uploadedURLs   = [];
 let currentTab     = 'create';
 let adminPass      = '';
 
-// Approve modal images
-let approveImages = [];
-let approveURLs   = [];
-
-/* ── PROXY HELPER ─────────────────────────────────── */
+// ── HELPERS ────────────────────────────────────────────────
+// Convert any Drive URL (thumbnail, uc?export...) to our proxy URL
 function toProxiedUrl(url) {
   if (!url) return '';
+  // Already proxied
   if (url.includes('/api/image')) return url;
+  // Extract file ID from common Drive URL patterns
   const patterns = [
     /[?&]id=([a-zA-Z0-9_-]{10,})/,
     /\/d\/([a-zA-Z0-9_-]{10,})\//,
@@ -35,10 +30,10 @@ function toProxiedUrl(url) {
     const m = url.match(re);
     if (m) return CONFIG.IMG_URL + '?id=' + m[1];
   }
-  return url;
+  return url; // Not a Drive URL — return as-is
 }
 
-/* ── LOGIN ────────────────────────────────────────── */
+// ── LOGIN ──────────────────────────────────────────────────
 document.getElementById('pass-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
 });
@@ -65,7 +60,7 @@ async function doLogin() {
     if (data.data) loadClientsData(data.data);
     loadRequestsData();
   } catch (err) {
-    console.error(err);
+    console.error('Login error:', err);
     showErr('Connection error — check console');
     btn.innerHTML = 'Enter →';
     btn.disabled  = false;
@@ -81,13 +76,11 @@ function logout() {
   document.getElementById('dashboard').classList.add('hidden');
 }
 
-/* ── API — WITH CACHE BUSTING ─────────────────────── */
+// ── API HELPERS ────────────────────────────────────────────
 async function apiGet(params) {
   const url = new URL(CONFIG.API_URL);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
-  // CACHE BUST: add timestamp to prevent CDN/browser caching [^2^]
-  url.searchParams.set('_t', Date.now());
-  const res = await fetch(url.toString(), { cache: 'no-store' });
+  const res = await fetch(url.toString());
   return res.json();
 }
 
@@ -100,7 +93,7 @@ async function apiPost(body) {
   return res.json();
 }
 
-/* ── SIDEBAR / TABS ───────────────────────────────── */
+// ── SIDEBAR & TABS ─────────────────────────────────────────
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
 function switchTab(tab, btn) {
@@ -122,7 +115,7 @@ function refreshData() {
   showToast('Refreshed', 'info');
 }
 
-/* ── IMAGE UPLOAD (Create LP only) ───────────────── */
+// ── IMAGE UPLOAD ───────────────────────────────────────────
 function handleImages(e) {
   const files   = Array.from(e.target.files || []);
   const allowed = 6 - uploadedImages.length - uploadedURLs.length;
@@ -152,8 +145,7 @@ function renderPreviews() {
     const div = document.createElement('div');
     div.className = 'img-thumb';
     div.innerHTML = `
-      <img src="${item.url}" alt=""
-        onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Crect width=%2240%22 height=%2240%22 fill=%22%23ff2d78%22/%3E%3Ctext x=%2220%22 y=%2225%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22white%22%3E📷%3C/text%3E%3C/svg%3E'"/>
+      <img src="${item.url}" alt="" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Crect width=%2240%22 height=%2240%22 fill=%22%23ff2d78%22/%3E%3Ctext x=%2220%22 y=%2225%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22white%22%3E📷%3C/text%3E%3C/svg%3E'"/>
       <button class="img-thumb-del" onclick="removeImage(${item.idx},'${item.type}')">✕</button>`;
     wrap.appendChild(div);
   });
@@ -165,6 +157,7 @@ function removeImage(idx, type) {
   renderPreviews();
 }
 
+// ── UPLOAD ALL PENDING IMAGES ──────────────────────────────
 async function uploadAllImages() {
   const results = [];
   for (const img of uploadedImages) {
@@ -175,21 +168,21 @@ async function uploadAllImages() {
   return results;
 }
 
-/* ── CREATE LP ────────────────────────────────────── */
+// ── CREATE LP ──────────────────────────────────────────────
 async function createLP() {
   const name = document.getElementById('c-name').value.trim();
   const msg  = document.getElementById('c-message').value.trim();
   if (!name) { showToast('Please enter a name', 'error'); return; }
 
   const btn = document.getElementById('create-btn');
-  btn.disabled  = true;
+  btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Uploading...';
 
   try {
     if (uploadedImages.length > 0) {
       btn.innerHTML = '<span class="spinner"></span> Uploading images...';
-      const newURLs  = await uploadAllImages();
-      uploadedURLs   = [...uploadedURLs, ...newURLs];
+      const newURLs = await uploadAllImages();
+      uploadedURLs  = [...uploadedURLs, ...newURLs];
       uploadedImages = [];
       renderPreviews();
     }
@@ -207,8 +200,8 @@ async function createLP() {
     uploadedURLs   = [];
     renderPreviews();
   } catch (err) {
-    console.error(err);
-    showToast('Error: ' + (err.message || 'Unknown'), 'error');
+    console.error('Create LP error:', err);
+    showToast('Error: ' + (err.message || 'Unknown error'), 'error');
   } finally {
     btn.disabled  = false;
     btn.innerHTML = '<span>✨ Generate LP</span>';
@@ -221,9 +214,7 @@ function showResult(url) {
   document.getElementById('result-link').value = url;
   const qrWrap = document.getElementById('qr-wrap');
   qrWrap.innerHTML = '';
-  try {
-    new QRCode(qrWrap, { text: url, width: 160, height: 160, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H });
-  } catch (e) { console.error(e); }
+  try { new QRCode(qrWrap, { text: url, width: 160, height: 160, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H }); } catch (e) { console.error('QR error:', e); }
 }
 
 function downloadQR() {
@@ -241,7 +232,7 @@ function shareWA() {
   window.open(`https://wa.me/?text=${encodeURIComponent('🎂 Your Birthday LP is ready! 💖 ' + link)}`, '_blank');
 }
 
-/* ── CLIENTS TABLE ────────────────────────────────── */
+// ── CLIENTS TABLE ──────────────────────────────────────────
 async function refreshClients() {
   const tbody = document.getElementById('clients-tbody');
   if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="loading-row">Loading...</td></tr>';
@@ -259,13 +250,11 @@ function loadClientsData(rows) {
   if (badge) badge.textContent = (rows || []).length;
   const tbody = document.getElementById('clients-tbody');
   if (!tbody) return;
-  if (!rows || !rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="loading-row">No LPs yet</td></tr>';
-    return;
-  }
+  if (!rows || !rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="loading-row">No LPs yet</td></tr>'; return; }
   tbody.innerHTML = rows.map(r => {
     const images = Array.isArray(r.images) ? r.images : [];
-    return `<tr>
+    return `
+    <tr>
       <td><strong>${esc(r.name || '')}</strong></td>
       <td style="color:var(--text-dim);font-size:.82rem">${formatDate(r.created_at)}</td>
       <td><span class="status-badge status-${r.status || 'active'}">${r.status || 'active'}</span></td>
@@ -282,221 +271,95 @@ function loadClientsData(rows) {
           <button class="action-btn danger" onclick="deleteLP('${esc(r.id)}')">🗑 Delete</button>
         </div>
       </td>
-    </tr>`;
-  }).join('');
+    </tr>`; }).join('');
 }
 
-/* ═══════════════════════════════════════════════════
-   REQUESTS TABLE — PLAIN FORM, NO IMAGES COLUMN
-   Newest first. Admin writes message when approving.
-   ═══════════════════════════════════════════════════ */
+// ── REQUESTS TABLE ─────────────────────────────────────────
 async function refreshRequests() {
   const tbody = document.getElementById('requests-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="loading-row">Loading...</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="loading-row">Loading...</td></tr>';
   try {
     const data = await apiGet({ action: 'getAllRequests', pass: adminPass });
     loadRequestsData(data.data || []);
   } catch (err) {
     console.error(err);
-    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="loading-row">Error loading</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="loading-row">Error loading</td></tr>';
   }
 }
 
 async function loadRequestsData(rows) {
   if (!rows) {
-    try { const d = await apiGet({ action: 'getAllRequests', pass: adminPass }); rows = d.data || []; }
+    try { const data = await apiGet({ action: 'getAllRequests', pass: adminPass }); rows = data.data || []; }
     catch (_) { rows = []; }
   }
-
-  // ── Newest first ──
-  rows = [...rows].reverse();
-
-  const pending = rows.filter(r => r.status === 'pending').length;
+  const pending = (rows || []).filter(r => r.status === 'pending').length;
   const badge   = document.getElementById('badge-requests');
   if (badge) badge.textContent = pending || '';
-
   const tbody = document.getElementById('requests-tbody');
   if (!tbody) return;
-
-  if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="loading-row">No requests yet</td></tr>';
-    return;
-  }
-
+  if (!rows || !rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="loading-row">No requests yet</td></tr>'; return; }
   tbody.innerHTML = rows.map(r => {
+    const images   = Array.isArray(r.images) ? r.images : [];
     const whatsapp = r.whatsapp || '';
     const cleanWA  = whatsapp.replace(/[^0-9]/g, '');
-    const lpUrl    = r.lp_id ? `${CONFIG.LP_BASE}?id=${r.lp_id}` : '';
-
-    // Actions column varies by status
-    let actionsHtml = '';
-    if (r.status === 'pending') {
-      actionsHtml = `
-        <button class="action-btn success" onclick="openApproveModal('${esc(r.id)}','${esc(r.name)}','${esc(whatsapp)}')">✅ Approve</button>
-        <button class="action-btn danger"  onclick="rejectRequest('${esc(r.id)}')">✕ Reject</button>`;
-    } else if (r.status === 'approved' && r.lp_id) {
-      actionsHtml = `
-        <button class="action-btn" onclick="viewQR('${esc(r.lp_id)}','${esc(r.name)}')">🔗 QR</button>
-        <button class="action-btn" onclick="copyLpLink('${esc(lpUrl)}')">📋 Copy Link</button>
-        ${whatsapp ? `<button class="action-btn whatsapp-btn" onclick="sendWhatsApp('${esc(r.lp_id)}','${esc(whatsapp)}','${esc(r.name)}')">📱 Send WA</button>` : ''}`;
-    } else if (r.status === 'rejected') {
-      actionsHtml = `<span style="color:var(--text-dim);font-size:.8rem">Rejected</span>`;
-    }
-
-    return `<tr>
+    return `
+    <tr>
       <td><strong>${esc(r.name || '')}</strong></td>
       <td>
-        ${whatsapp
-          ? `<a href="https://wa.me/${cleanWA}" target="_blank" style="color:#25d366;text-decoration:none;font-weight:600">📱 ${esc(whatsapp)}</a>`
-          : '<span style="color:var(--text-dim)">—</span>'}
-        ${r.email ? `<br><span style="font-size:.75rem;color:var(--text-dim)">${esc(r.email)}</span>` : ''}
+        ${whatsapp ? `<a href="https://wa.me/${cleanWA}" target="_blank" style="color:var(--success);text-decoration:none">📱 ${esc(whatsapp)}</a>` : '—'}
+        ${r.email  ? `<br><span style="font-size:.78rem;color:var(--text-dim)">${esc(r.email)}</span>` : ''}
       </td>
-      <td style="color:var(--text-dim);font-size:.82rem;white-space:nowrap">${formatDate(r.requested_at)}</td>
+      <td>
+        <div class="table-img-row">
+          ${images.slice(0,3).map(u => `<img class="table-thumb" src="${esc(toProxiedUrl(u))}" onerror="this.style.display='none'" alt=""/>`).join('')}
+          ${images.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${images.length-3}</span>` : ''}
+        </div>
+      </td>
+      <td style="max-width:180px;font-size:.85rem;color:var(--text-dim)">${esc((r.message||'').substring(0,80))}${(r.message||'').length>80?'…':''}</td>
+      <td style="color:var(--text-dim);font-size:.82rem">${formatDate(r.requested_at)}</td>
       <td><span class="status-badge status-${r.status||'pending'}">${r.status||'pending'}</span></td>
       <td>
-        <div class="action-btns">${actionsHtml}</div>
+        <div class="action-btns">
+          ${r.status === 'pending' ? `
+            <button class="action-btn success" onclick="approveRequest('${esc(r.id)}','${esc(whatsapp)}')">✅ Approve</button>
+            <button class="action-btn danger"  onclick="rejectRequest('${esc(r.id)}')">✕ Reject</button>
+          ` : r.status === 'approved' ? `
+            <button class="action-btn" onclick="viewQR('${esc(r.lp_id||'')}','${esc(r.name)}')">🔗 QR</button>
+            <button class="action-btn whatsapp-btn" onclick="sendWhatsApp('${esc(r.lp_id||'')}','${esc(whatsapp)}','${esc(r.name)}')">📱 Send WA</button>
+          ` : ''}
+        </div>
       </td>
-    </tr>`;
-  }).join('');
+    </tr>`; }).join('');
 }
 
-/* ═══════════════════════════════════════════════════
-   APPROVE MODAL — Admin writes message + uploads images
-   ═══════════════════════════════════════════════════ */
-function openApproveModal(id, name, whatsapp) {
-  document.getElementById('approve-req-id').value = id;
-  document.getElementById('approve-whatsapp').value = whatsapp;
-  document.getElementById('approve-name').value = name;
-  document.getElementById('approve-wa-display').value = whatsapp;
-  document.getElementById('approve-message').value = '';
-  approveImages = [];
-  approveURLs   = [];
-  renderApprovePreviews();
-  document.getElementById('approve-modal').style.display = 'flex';
-}
-
-function handleApproveImages(e) {
-  const files   = Array.from(e.target.files || []);
-  const allowed = 6 - approveImages.length - approveURLs.length;
-  files.slice(0, Math.max(0, allowed)).forEach(file => {
-    if (file.size > 5 * 1024 * 1024) { showToast('Image too large (max 5MB)', 'error'); return; }
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const dataUrl = ev.target.result;
-      approveImages.push({ base64: dataUrl.split(',')[1], mime: file.type || 'image/jpeg', name: file.name || 'image.jpg', preview: dataUrl });
-      renderApprovePreviews();
-    };
-    reader.onerror = () => showToast('Error reading file', 'error');
-    reader.readAsDataURL(file);
-  });
-  e.target.value = '';
-}
-
-function renderApprovePreviews() {
-  const wrap = document.getElementById('approve-image-previews');
-  if (!wrap) return;
-  wrap.innerHTML = '';
-  const all = [
-    ...approveURLs.map((u, idx) => ({ type: 'url',   url: toProxiedUrl(u), idx })),
-    ...approveImages.map((img, idx) => ({ type: 'local', url: img.preview,       idx }))
-  ];
-  all.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'img-thumb';
-    div.innerHTML = `
-      <img src="${item.url}" alt=""
-        onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Crect width=%2240%22 height=%2240%22 fill=%22%23ff2d78%22/%3E%3Ctext x=%2220%22 y=%2225%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22white%22%3E📷%3C/text%3E%3C/svg%3E'"/>
-      <button class="img-thumb-del" onclick="removeApproveImage(${item.idx},'${item.type}')">✕</button>`;
-    wrap.appendChild(div);
-  });
-}
-
-function removeApproveImage(idx, type) {
-  if (type === 'url') approveURLs.splice(idx, 1);
-  else                approveImages.splice(idx, 1);
-  renderApprovePreviews();
-}
-
-async function uploadApproveImages() {
-  const results = [];
-  for (const img of approveImages) {
-    const res = await apiPost({ action: 'uploadImage', pass: adminPass, data: img.base64, mimeType: img.mime, filename: img.name });
-    if (res.error) throw new Error(res.error);
-    if (res.url)   results.push(res.url);
-  }
-  return results;
-}
-
-async function confirmApprove() {
-  const id       = document.getElementById('approve-req-id').value;
-  const name     = document.getElementById('approve-name').value;
-  const whatsapp = document.getElementById('approve-whatsapp').value;
-  const message  = document.getElementById('approve-message').value.trim();
-
-  if (!message) {
-    showToast('Please write a custom message for this person', 'error');
-    return;
-  }
-
-  const btn = document.getElementById('approve-btn');
-  btn.disabled  = true;
-  btn.innerHTML = '<span class="spinner"></span> Creating...';
-
+async function approveRequest(id, whatsapp) {
+  if (!confirm('Approve this request and create their LP?')) return;
   try {
-    // Upload images first
-    if (approveImages.length > 0) {
-      btn.innerHTML = '<span class="spinner"></span> Uploading images...';
-      const newURLs = await uploadApproveImages();
-      approveURLs   = [...approveURLs, ...newURLs];
-      approveImages = [];
-      renderApprovePreviews();
-    }
-
-    // Create LP with message and images
-    btn.innerHTML = '<span class="spinner"></span> Creating LP...';
-    const createRes = await apiPost({
-      action: 'createLP',
-      pass: adminPass,
-      name,
-      images: approveURLs,
-      custom_message: message
-    });
-
-    if (createRes.error) throw new Error(createRes.error);
-
-    // Update request status with lp_id
-    const updateRes = await apiPost({
-      action: 'updateRequestStatus',
-      pass: adminPass,
-      id,
-      status: 'approved',
-      lp_id: createRes.id
-    });
-
-    if (updateRes.error) throw new Error(updateRes.error);
-
+    const res = await apiPost({ action: 'updateRequestStatus', pass: adminPass, id, status: 'approved' });
+    if (res.error) { showToast('Error: ' + res.error, 'error'); return; }
     showToast('Approved! LP created 🎉', 'success');
-    document.getElementById('approve-modal').style.display = 'none';
-
-    // Auto-open WhatsApp
-    if (whatsapp) {
-      const url   = `${CONFIG.LP_BASE}?id=${createRes.id}`;
+    if (res.lpId && whatsapp) {
+      const url   = `${CONFIG.LP_BASE}?id=${res.lpId}`;
       const waMsg = encodeURIComponent(`🎂 Hi! Your Birthday LP is ready! 💖\n\n${url}\n\nEnjoy your special day! 🎉`);
       window.open(`https://wa.me/${whatsapp.replace(/[^0-9]/g,'')}?text=${waMsg}`, '_blank');
     }
-
-    // Reset
-    approveImages = [];
-    approveURLs   = [];
     refreshRequests();
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+}
 
-  } catch (err) {
-    console.error(err);
-    showToast('Error: ' + err.message, 'error');
-  } finally {
-    btn.disabled  = false;
-    btn.innerHTML = '<span>✅ Approve & Create LP</span>';
+function sendWhatsApp(lpId, whatsapp, name) {
+  if (!whatsapp) { showToast('No WhatsApp number available', 'error'); return; }
+  const url      = `${CONFIG.LP_BASE}?id=${lpId}`;
+  const modal    = document.getElementById('send-wa-modal');
+  const linkInput = document.getElementById('send-wa-link');
+  const actionBtn = document.getElementById('send-wa-action-btn');
+  if (linkInput)  linkInput.value = url;
+  const cleanNumber = whatsapp.replace(/[^0-9]/g,'');
+  const waMsg = encodeURIComponent(`🎂 Hi ${name||''}! Your Birthday LP is ready! 💖\n\n${url}\n\nEnjoy your special day! 🎉`);
+  if (actionBtn) {
+    actionBtn.onclick = () => { window.open(`https://wa.me/${cleanNumber}?text=${waMsg}`, '_blank'); if (modal) modal.style.display = 'none'; };
   }
+  if (modal) modal.style.display = 'flex';
 }
 
 async function rejectRequest(id) {
@@ -508,38 +371,7 @@ async function rejectRequest(id) {
   } catch (err) { showToast('Error: ' + err.message, 'error'); }
 }
 
-function copyLpLink(url) {
-  if (!url) { showToast('No LP link available', 'error'); return; }
-  navigator.clipboard.writeText(url).then(() => showToast('Link copied! ✓', 'success')).catch(() => {
-    const el = document.createElement('input');
-    el.value = url;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand('copy');
-    document.body.removeChild(el);
-    showToast('Link copied! ✓', 'success');
-  });
-}
-
-function sendWhatsApp(lpId, whatsapp, name) {
-  if (!whatsapp) { showToast('No WhatsApp number available', 'error'); return; }
-  const url      = `${CONFIG.LP_BASE}?id=${lpId}`;
-  const modal    = document.getElementById('send-wa-modal');
-  const linkInput = document.getElementById('send-wa-link');
-  const actionBtn = document.getElementById('send-wa-action-btn');
-  if (linkInput)  linkInput.value = url;
-  const cleanNumber = whatsapp.replace(/[^0-9]/g, '');
-  const waMsg       = encodeURIComponent(`🎂 Hi ${name || ''}! Your Birthday LP is ready! 💖\n\n${url}\n\nEnjoy your special day! 🎉`);
-  if (actionBtn) {
-    actionBtn.onclick = () => {
-      window.open(`https://wa.me/${cleanNumber}?text=${waMsg}`, '_blank');
-      if (modal) modal.style.display = 'none';
-    };
-  }
-  if (modal) modal.style.display = 'flex';
-}
-
-/* ── EDIT MODAL ───────────────────────────────────── */
+// ── EDIT MODAL ─────────────────────────────────────────────
 function openEdit(id, name, msg, status) {
   document.getElementById('edit-id').value      = id     || '';
   document.getElementById('edit-name').value    = name   || '';
@@ -551,12 +383,7 @@ function openEdit(id, name, msg, status) {
 async function saveEdit() {
   const id = document.getElementById('edit-id').value;
   try {
-    const res = await apiPost({
-      action: 'updateLP', pass: adminPass, id,
-      name:           document.getElementById('edit-name').value    || '',
-      custom_message: document.getElementById('edit-message').value || '',
-      status:         document.getElementById('edit-status').value  || 'active'
-    });
+    const res = await apiPost({ action: 'updateLP', pass: adminPass, id, name: document.getElementById('edit-name').value || '', custom_message: document.getElementById('edit-message').value || '', status: document.getElementById('edit-status').value || 'active' });
     if (res.error) { showToast('Error: ' + res.error, 'error'); return; }
     showToast('Saved! ✓', 'success');
     document.getElementById('edit-modal').style.display = 'none';
@@ -574,34 +401,28 @@ async function deleteLP(id) {
   } catch (err) { showToast('Error: ' + err.message, 'error'); }
 }
 
-/* ── QR MODAL ─────────────────────────────────────── */
+// ── QR MODAL ───────────────────────────────────────────────
 function viewQR(id, name) {
   const url  = `${CONFIG.LP_BASE}?id=${id}`;
   document.getElementById('modal-link').value = url;
   const wrap = document.getElementById('modal-qr-wrap');
   wrap.innerHTML = '';
-  try {
-    new QRCode(wrap, { text: url, width: 180, height: 180, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H });
-  } catch (e) { console.error(e); }
+  try { new QRCode(wrap, { text: url, width: 180, height: 180, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H }); } catch (e) { console.error(e); }
   const waBtn = document.getElementById('modal-wa-btn');
   if (waBtn) waBtn.onclick = () => window.open(`https://wa.me/?text=${encodeURIComponent('🎂 Happy Birthday LP for '+(name||'')+'! 💖 '+url)}`, '_blank');
+  let dlCanvas = null;
   const check = setInterval(() => {
-    const dlCanvas = wrap.querySelector('canvas');
+    dlCanvas = wrap.querySelector('canvas');
     if (dlCanvas) {
       clearInterval(check);
       const dlBtn = document.getElementById('modal-dl-btn');
-      if (dlBtn) dlBtn.onclick = () => {
-        const a = document.createElement('a');
-        a.href     = dlCanvas.toDataURL('image/png');
-        a.download = `lp-qr-${id}.png`;
-        a.click();
-      };
+      if (dlBtn) dlBtn.onclick = () => { const a = document.createElement('a'); a.href = dlCanvas.toDataURL('image/png'); a.download = `lp-qr-${id}.png`; a.click(); };
     }
   }, 100);
   document.getElementById('qr-modal').style.display = 'flex';
 }
 
-/* ── UTILS ────────────────────────────────────────── */
+// ── UTILS ──────────────────────────────────────────────────
 function closeModal(e) { if (e.target.classList.contains('modal-overlay')) e.target.style.display = 'none'; }
 
 function copyText(inputId) {
@@ -614,15 +435,13 @@ function copyText(inputId) {
 
 function esc(str) {
   if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function formatDate(str) {
   if (!str) return '—';
   try { return new Date(str).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
-  catch (_) { return String(str); }
+  catch { return String(str); }
 }
 
 let toastTimer;
@@ -635,28 +454,14 @@ function showToast(msg, type = 'info') {
   toastTimer = setTimeout(() => t.className = 'toast', 3000);
 }
 
-// Drag-and-drop on upload zone
+// Drag-over styling for upload zone
 const zone = document.getElementById('upload-zone');
 if (zone) {
   zone.addEventListener('dragover',  e => { e.preventDefault(); zone.style.borderColor = 'var(--pink)'; });
   zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
   zone.addEventListener('drop', e => {
-    e.preventDefault();
-    zone.style.borderColor = '';
+    e.preventDefault(); zone.style.borderColor = '';
     const dt = e.dataTransfer;
     if (dt && dt.files && dt.files.length) handleImages({ target: { files: dt.files, value: '' } });
-  });
-}
-
-// Drag-and-drop on approve upload zone
-const approveZone = document.getElementById('approve-upload-zone');
-if (approveZone) {
-  approveZone.addEventListener('dragover',  e => { e.preventDefault(); approveZone.style.borderColor = 'var(--pink)'; });
-  approveZone.addEventListener('dragleave', () => { approveZone.style.borderColor = ''; });
-  approveZone.addEventListener('drop', e => {
-    e.preventDefault();
-    approveZone.style.borderColor = '';
-    const dt = e.dataTransfer;
-    if (dt && dt.files && dt.files.length) handleApproveImages({ target: { files: dt.files, value: '' } });
   });
 }

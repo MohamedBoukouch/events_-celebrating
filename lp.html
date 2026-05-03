@@ -9,10 +9,7 @@
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════
-     REQUEST FORM — shown when no ?id= param in URL
-     NO message field. NO image upload.
-     ═══════════════════════════════════════════════════════ -->
+<!-- REQUEST FORM (shown when no ?id= present) -->
 <div id="request-screen" style="display:none">
   <div class="req-bg"></div>
   <div class="req-card">
@@ -25,18 +22,28 @@
         <label>Your Name *</label>
         <input type="text" id="req-name" placeholder="Enter your name" class="req-input"/>
       </div>
-
       <div class="req-group">
         <label>WhatsApp Number *</label>
         <input type="tel" id="req-whatsapp" placeholder="+212 6XX XXX XXX" class="req-input"/>
         <small style="color:rgba(255,255,255,.4);font-size:.75rem">We will send your LP link here</small>
       </div>
-
       <div class="req-group">
         <label>Email (optional)</label>
         <input type="email" id="req-email" placeholder="your@email.com" class="req-input"/>
       </div>
-
+      <div class="req-group">
+        <label>Message to admin (optional)</label>
+        <textarea id="req-message" class="req-input" rows="3" placeholder="Any special requests?"></textarea>
+      </div>
+      <div class="req-group">
+        <label>Your Photos (up to 6)</label>
+        <div class="req-upload" onclick="document.getElementById('req-imgs').click()">
+          <div>📸 Click to upload photos</div>
+          <div style="font-size:.8rem;opacity:.6;margin-top:.3rem">PNG, JPG — max 5MB each</div>
+          <input type="file" id="req-imgs" accept="image/*" multiple style="display:none" onchange="handleReqImages(event)"/>
+        </div>
+        <div id="req-previews" class="req-previews"></div>
+      </div>
       <button class="req-btn" onclick="submitRequest()" id="req-submit-btn">
         Send Request 💌
       </button>
@@ -45,9 +52,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     LP CONTENT — shown when ?id= param is present
-     ═══════════════════════════════════════════════════════ -->
+<!-- LP CONTENT (shown when ?id= is present) -->
 <div id="lp-screen" style="display:none">
   <div id="stars"></div>
   <canvas id="matrix"></canvas>
@@ -97,17 +102,11 @@
 
       <div class="book-open-wrap" id="open-book-wrap">
         <div class="open-book" id="open-book">
-          <div class="static-left" id="static-left">
-            <div class="ph-page"><div class="ph-text">📖</div></div>
-          </div>
+          <div class="static-left" id="static-left"><div class="ph-page"><div class="ph-text">📖</div></div></div>
           <div class="b-page right-page" id="flip-page"
                onmousedown="startDrag(event)" ontouchstart="startDrag(event)">
-            <div class="b-page-front" id="flip-front">
-              <div class="ph-page"><div class="ph-text">📖</div></div>
-            </div>
-            <div class="b-page-back" id="flip-back">
-              <div class="ph-page"><div class="ph-text">📖</div></div>
-            </div>
+            <div class="b-page-front" id="flip-front"><div class="ph-page"><div class="ph-text">📖</div></div></div>
+            <div class="b-page-back"  id="flip-back"><div class="ph-page"><div class="ph-text">📖</div></div></div>
           </div>
           <div class="book-spine-el"></div>
           <div class="drag-arrow left-arrow"  id="arrow-left">‹</div>
@@ -117,7 +116,7 @@
         <div class="book-progress" id="book-progress"></div>
       </div>
     </section>
-  </div><!-- /main-page -->
+  </div>
 
   <!-- HEART FORMATION OVERLAY -->
   <div id="heart-formation">
@@ -131,25 +130,23 @@
             <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
-        <path id="hf-heart-path" fill="none" stroke="#ff2d78" stroke-width="3"
-              filter="url(#glow)" opacity="0.7"/>
+        <path id="hf-heart-path" fill="none" stroke="#ff2d78" stroke-width="3" filter="url(#glow)" opacity="0.7"/>
       </svg>
     </div>
     <button class="hf-close" onclick="closeHeartFormation()">✕ Close</button>
   </div>
 
   <footer>made with 💖 just for you</footer>
-</div><!-- /lp-screen -->
-
-<!-- ERROR SCREEN -->
-<div id="error-screen" style="display:none">
-  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;text-align:center;padding:2rem;background:#0a0812;color:#fff">
-    <div style="font-size:4rem">😢</div>
-    <h2 style="font-family:'Fredoka One',cursive;color:#ff2d78;font-size:2rem">LP Not Found</h2>
-    <p style="color:rgba(255,255,255,.5)">This birthday page doesn't exist or has been removed.</p>
-  </div>
 </div>
 
+<!-- Error screen -->
+<div id="error-screen" style="display:none;min-height:100vh;display:none;align-items:center;justify-content:center;flex-direction:column;gap:1rem;text-align:center;padding:2rem;background:#0a0812;color:#fff">
+  <div style="font-size:4rem">😢</div>
+  <h2 style="font-family:'Fredoka One',cursive;color:#ff2d78;font-size:2rem">LP Not Found</h2>
+  <p style="color:rgba(255,255,255,.5)">This birthday page doesn't exist or has been removed.</p>
+</div>
+
+<!-- QR lib + App Script -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="lp/app.js"></script>
 </body>
