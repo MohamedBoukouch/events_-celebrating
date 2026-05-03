@@ -1,5 +1,5 @@
 /* =====================================================
-   BIRTHDAY LP PAGE — JavaScript (FINAL FIX)
+   BIRTHDAY LP PAGE — JavaScript (FIXED)
    ===================================================== */
 
 const LP_CONFIG = {
@@ -17,44 +17,23 @@ const MUSIC = {
     this.audio = new Audio('https://res.cloudinary.com/ds9v1rpfi/video/upload/v1777808988/love_zmgfmy.mp3');
     this.audio.loop = true;
     this.audio.volume = 0.6;
-
-    this.audio.addEventListener('error', (e) => {
-      console.error('Audio error:', e);
-    });
-
+    this.audio.addEventListener('error', (e) => { console.error('Audio error:', e); });
     this._tryPlay();
-
     const events = ['click', 'touchstart', 'keydown'];
-    
     const startOnInteraction = () => {
-      if (this.started) {
-        this._cleanupListeners(startOnInteraction, events);
-        return;
-      }
+      if (this.started) { this._cleanupListeners(startOnInteraction, events); return; }
       this._tryPlay();
       this.initAttempts++;
-      if (this.started || this.initAttempts >= this.maxAttempts) {
+      if (this.started || this.initAttempts >= this.maxAttempts)
         this._cleanupListeners(startOnInteraction, events);
-      }
     };
-
-    events.forEach(ev =>
-      document.addEventListener(ev, startOnInteraction, { passive: true })
-    );
+    events.forEach(ev => document.addEventListener(ev, startOnInteraction, { passive: true }));
   },
-
-  _cleanupListeners(fn, events) {
-    events.forEach(ev => document.removeEventListener(ev, fn));
-  },
-
+  _cleanupListeners(fn, events) { events.forEach(ev => document.removeEventListener(ev, fn)); },
   _tryPlay() {
     if (!this.audio || this.started) return;
-    const promise = this.audio.play();
-    if (promise !== undefined) {
-      promise
-        .then(() => { this.started = true; console.log('Music playing!'); })
-        .catch(() => { console.log('Autoplay blocked'); });
-    }
+    const p = this.audio.play();
+    if (p !== undefined) p.then(() => { this.started = true; }).catch(() => {});
   }
 };
 
@@ -97,20 +76,13 @@ function initLP(lpData) {
   BOOK_IMAGES = lpData.images || [];
   const name = lpData.name || 'You';
   const msg = lpData.custom_message || '';
-
   document.getElementById('word-name').textContent = name.toUpperCase();
-
   if (msg) {
     document.getElementById('custom-msg-section').style.display = 'block';
     document.getElementById('custom-msg-card').textContent = msg;
   }
-
   document.title = `Happy Birthday ${name}! 💖`;
-
-  initStars();
-  initMatrix();
-  initHearts();
-  initConfetti();
+  initStars(); initMatrix(); initHearts(); initConfetti();
   setTimeout(runCountdown, 400);
 }
 
@@ -454,22 +426,28 @@ function closeHeartFormation() {
   setTimeout(() => { hf.classList.remove('show'); hf.style.opacity = ''; hf.style.transition = ''; }, 500);
 }
 
-/* ── REQUEST FORM (RESTORED OLD WORKING METHOD) ─────────── */
+/* ═══════════════════════════════════════════════════
+   REQUEST FORM — FIXED IMAGE UPLOAD
+   Uses the same uploadImage API call as the admin does,
+   so base64 is sent as JSON (not form-encoded), which
+   avoids the "string did not match the expected pattern" error.
+   ═══════════════════════════════════════════════════ */
 let reqImages = [];
 
 function handleReqImages(e) {
   const files = Array.from(e.target.files || []);
   const allowed = 6 - reqImages.length;
-  
   files.slice(0, allowed).forEach(f => {
-    if (f.size > 5*1024*1024) return;
+    if (f.size > 5 * 1024 * 1024) { alert('Image too large (max 5MB)'); return; }
     const r = new FileReader();
     r.onload = ev => {
-      // OLD METHOD: Store full dataURL with preview, extract base64 on submit
-      reqImages.push({ 
-        dataUrl: ev.target.result,  // Full data:image/jpeg;base64,...
-        mime: f.type, 
-        name: f.name 
+      const dataUrl = ev.target.result;
+      const commaIdx = dataUrl.indexOf(',');
+      reqImages.push({
+        dataUrl,
+        base64: dataUrl.substring(commaIdx + 1),
+        mime: f.type,
+        name: f.name
       });
       renderReqPreviews();
     };
@@ -483,57 +461,84 @@ function renderReqPreviews() {
   wrap.innerHTML = reqImages.map((img, i) => `
     <div class="req-thumb">
       <img src="${img.dataUrl}" alt="" onclick="reqImages.splice(${i},1);renderReqPreviews()"/>
+      <div class="req-thumb-del" onclick="reqImages.splice(${i},1);renderReqPreviews()">✕</div>
     </div>
   `).join('');
 }
 
+/* Upload a single image via the same endpoint the admin uses (JSON body) */
+async function uploadOneImage(imgObj) {
+  const res = await fetch(LP_CONFIG.API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'uploadImage',
+      data: imgObj.base64,
+      mimeType: imgObj.mime,
+      filename: imgObj.name
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.url;
+}
+
+/* Validate Moroccan phone number — must start with 06 or 07, exactly 10 digits */
+function validatePhone(phone) {
+  const cleaned = phone.replace(/\s/g, '');
+  return /^(06|07)\d{8}$/.test(cleaned);
+}
+
 async function submitRequest() {
   const name = document.getElementById('req-name').value.trim();
-  const whatsapp = document.getElementById('req-whatsapp').value.trim();
+  const phone = document.getElementById('req-whatsapp').value.trim();
   const email = document.getElementById('req-email').value.trim();
   const msg = document.getElementById('req-message').value.trim();
-  
-  if (!name) { alert('Please enter your name'); return; }
-  if (!whatsapp) { alert('Please enter your WhatsApp number'); return; }
+
+  if (!name) { showReqError('Please enter your name'); return; }
+  if (!phone) { showReqError('Please enter your WhatsApp number'); return; }
+  if (!validatePhone(phone)) {
+    showReqError('Please enter a valid number (e.g. 0682950546 — starts with 06 or 07, 10 digits)');
+    return;
+  }
 
   const btn = document.getElementById('req-submit-btn');
-  btn.disabled = true; 
-  btn.textContent = 'Sending... 💌';
+  const resultEl = document.getElementById('req-result');
+  btn.disabled = true;
+  btn.textContent = reqImages.length > 0 ? 'Uploading photos... 📸' : 'Sending... 💌';
+  resultEl.innerHTML = '';
 
   try {
-    // OLD METHOD: Extract base64 from dataURL and send as JSON array
-    const imageData = reqImages.map(img => {
-      const commaIndex = img.dataUrl.indexOf(',');
-      return img.dataUrl.substring(commaIndex + 1);
-    });
+    /* Step 1: Upload each image individually using JSON API (same as admin) */
+    const uploadedUrls = [];
+    for (let i = 0; i < reqImages.length; i++) {
+      btn.textContent = `Uploading photo ${i + 1}/${reqImages.length}... 📸`;
+      const url = await uploadOneImage(reqImages[i]);
+      uploadedUrls.push(url);
+    }
 
-    const payload = { 
-      action: 'submitRequest', 
-      name: name, 
-      whatsapp: whatsapp,
-      email: email || '', 
-      message: msg || '', 
-      images: JSON.stringify(imageData)  // ← OLD WORKING METHOD
-    };
-    
-    const formBody = Object.entries(payload)
-      .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v))
-      .join('&');
-
+    /* Step 2: Submit the request with hosted image URLs */
+    btn.textContent = 'Sending request... 💌';
     const res = await fetch(LP_CONFIG.API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: formBody
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'submitRequest',
+        name,
+        whatsapp: phone,
+        email: email || '',
+        message: msg || '',
+        images: uploadedUrls   /* already hosted URLs, not base64 */
+      })
     });
-    
+
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
-    document.getElementById('req-result').innerHTML =
-      '<span style="color:#4ade80">✅ Request sent! We\'ll create your LP and send the link to your WhatsApp soon 💖</span>';
+    resultEl.innerHTML = '<span style="color:#4ade80">✅ Request sent! We\'ll create your LP and send the link to your WhatsApp soon 💖</span>';
     btn.textContent = 'Sent! 💖';
-    
-    // Reset form
+
+    /* Reset */
     setTimeout(() => {
       document.getElementById('req-name').value = '';
       document.getElementById('req-whatsapp').value = '';
@@ -541,13 +546,19 @@ async function submitRequest() {
       document.getElementById('req-message').value = '';
       reqImages = [];
       renderReqPreviews();
-    }, 3000);
-    
+      btn.disabled = false;
+      btn.textContent = 'Send Request 💌';
+      resultEl.innerHTML = '';
+    }, 4000);
+
   } catch (err) {
     console.error('Submit error:', err);
-    document.getElementById('req-result').innerHTML =
-      '<span style="color:#f87171">❌ Error: ' + err.message + '</span>';
+    resultEl.innerHTML = '<span style="color:#f87171">❌ Error: ' + err.message + '</span>';
     btn.disabled = false;
     btn.textContent = 'Send Request 💌';
   }
+}
+
+function showReqError(msg) {
+  document.getElementById('req-result').innerHTML = `<span style="color:#f87171">⚠️ ${msg}</span>`;
 }
