@@ -3,37 +3,47 @@
 // Usage: /api/image?id=DRIVE_FILE_ID
 
 module.exports = async function handler(req, res) {
-  const { id } = req.query;
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
+  const { id } = req.query;
   if (!id) {
     return res.status(400).json({ error: 'Missing id parameter' });
   }
 
-  try {
-    // Try direct download URL first
-    const driveUrl = `https://drive.google.com/uc?export=download&id=${id}&confirm=t`;
+  // Try thumbnail URL first (works without auth for shared files)
+  const urls = [
+    `https://drive.google.com/thumbnail?id=${id}&sz=w1000`,
+    `https://lh3.googleusercontent.com/d/${id}`,
+    `https://drive.google.com/uc?export=download&id=${id}&confirm=t`,
+  ];
 
-    const driveRes = await fetch(driveUrl, {
-      redirect: 'follow',
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        'Accept': 'image/*,*/*'
-      }
-    });
+  for (const driveUrl of urls) {
+    try {
+      const driveRes = await fetch(driveUrl, {
+        redirect: 'follow',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; Vercel/1.0)',
+          'Accept': 'image/*,*/*;q=0.8',
+        }
+      });
 
-    if (!driveRes.ok) {
-      return res.status(driveRes.status).json({ error: 'Drive fetch failed: ' + driveRes.status });
+      if (!driveRes.ok) continue;
+
+      const contentType = driveRes.headers.get('content-type') || 'image/jpeg';
+      // Only serve actual image responses, not HTML error pages
+      if (contentType.includes('text/html')) continue;
+
+      const buffer = await driveRes.arrayBuffer();
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.status(200).send(Buffer.from(buffer));
+    } catch (_) {
+      continue;
     }
-
-    const contentType = driveRes.headers.get('content-type') || 'image/jpeg';
-    const buffer = await driveRes.arrayBuffer();
-
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // cache 24h
-    return res.status(200).send(Buffer.from(buffer));
-
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
   }
+
+  return res.status(404).json({ error: 'Could not fetch image from Drive' });
 };
