@@ -15,7 +15,7 @@ const MUSIC = {
   started: false,
 
   init() {
-    this.audio = new Audio('audio/love.mp3');
+    this.audio = new Audio('../audio/love.mp3');
     this.audio.loop   = true;
     this.audio.volume = 0.6;
 
