@@ -23,6 +23,11 @@
         <input type="text" id="req-name" placeholder="Enter your name" class="req-input"/>
       </div>
       <div class="req-group">
+        <label>WhatsApp Number *</label>
+        <input type="tel" id="req-whatsapp" placeholder="+212 6XX XXX XXX" class="req-input"/>
+        <small style="color:rgba(255,255,255,.4);font-size:.75rem">We will send your LP link here</small>
+      </div>
+      <div class="req-group">
         <label>Email (optional)</label>
         <input type="email" id="req-email" placeholder="your@email.com" class="req-input"/>
       </div>
@@ -75,18 +80,16 @@
     </section>
 
     <!-- Custom message -->
-    
+    <div id="custom-msg-section" style="display:none">
+      <div class="custom-msg-wrap">
+        <div class="custom-msg-card" id="custom-msg-card"></div>
+      </div>
+    </div>
 
     <!-- PHOTO BOOK -->
     <section id="photobook">
       <h2 class="book-title">📖 Our Memories 📖</h2>
       <p class="book-hint">✨ Click the book to open it • Drag pages to turn ✨</p>
-
-      <div id="custom-msg-section" style="display:none">
-      <div class="custom-msg-wrap">
-        <div class="custom-msg-card" id="custom-msg-card"></div>
-      </div>
-    </div>
 
       <div class="book-closed-wrap" id="closed-book" onclick="openBook()">
         <div class="book-closed">

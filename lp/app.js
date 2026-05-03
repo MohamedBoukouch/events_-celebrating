@@ -1,5 +1,5 @@
 /* =====================================================
-   BIRTHDAY LP PAGE — JavaScript (FIXED)
+   BIRTHDAY LP PAGE — JavaScript (FULLY FIXED)
    ===================================================== */
 
 // ── CONFIG ────────────────────────────────────────────────
@@ -7,7 +7,7 @@ const LP_CONFIG = {
   API_URL: 'https://events-celebrating.vercel.app/api/proxy'
 };
 
-// ── SILENT BACKGROUND MUSIC (FIXED) ──────────────────────
+// ── SILENT BACKGROUND MUSIC ───────────────────────────────
 const MUSIC = {
   audio: null,
   started: false,
@@ -15,21 +15,16 @@ const MUSIC = {
   maxAttempts: 5,
 
   init() {
-    // ✅ VOTRE LIEN CLOUDINARY
     this.audio = new Audio('https://res.cloudinary.com/ds9v1rpfi/video/upload/v1777808988/love_zmgfmy.mp3');
     this.audio.loop = true;
     this.audio.volume = 0.6;
 
-    // Error handling
     this.audio.addEventListener('error', (e) => {
       console.error('Audio error:', e);
-      console.log('Audio source:', this.audio.src);
     });
 
-    // Try autoplay immediately
     this._tryPlay();
 
-    // Setup interaction listeners
     const events = ['click', 'touchstart', 'keydown'];
     
     const startOnInteraction = () => {
@@ -76,7 +71,6 @@ const MUSIC = {
 const params = new URLSearchParams(window.location.search);
 const lpId = params.get('id');
 
-// Start music as early as possible
 MUSIC.init();
 
 if (lpId) {
@@ -469,7 +463,7 @@ function closeHeartFormation() {
   setTimeout(() => { hf.classList.remove('show'); hf.style.opacity = ''; hf.style.transition = ''; }, 500);
 }
 
-/* ── REQUEST FORM ─────────────────────────────────── */
+/* ── REQUEST FORM (FIXED) ─────────────────────────────────── */
 let reqImages = [];
 
 function handleReqImages(e) {
@@ -498,9 +492,12 @@ function renderReqPreviews() {
 
 async function submitRequest() {
   const name = document.getElementById('req-name').value.trim();
+  const whatsapp = document.getElementById('req-whatsapp').value.trim();
   const email = document.getElementById('req-email').value.trim();
   const msg = document.getElementById('req-message').value.trim();
+  
   if (!name) { alert('Please enter your name'); return; }
+  if (!whatsapp) { alert('Please enter your WhatsApp number'); return; }
 
   const btn = document.getElementById('req-submit-btn');
   btn.disabled = true; btn.textContent = 'Sending... 💌';
@@ -508,7 +505,14 @@ async function submitRequest() {
   const imageData = reqImages.map(i => i.base64);
 
   try {
-    const payload = { action: 'submitRequest', name, email, message: msg, images: JSON.stringify(imageData) };
+    const payload = { 
+      action: 'submitRequest', 
+      name, 
+      whatsapp,
+      email, 
+      message: msg, 
+      images: JSON.stringify(imageData) 
+    };
     const formBody = Object.entries(payload)
       .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v))
       .join('&');
@@ -522,8 +526,19 @@ async function submitRequest() {
     if (data.error) throw new Error(data.error);
 
     document.getElementById('req-result').innerHTML =
-      '<span style="color:#4ade80">✅ Request sent! We\'ll create your LP and share the link soon 💖</span>';
+      '<span style="color:#4ade80">✅ Request sent! We\'ll create your LP and send the link to your WhatsApp soon 💖</span>';
     btn.textContent = 'Sent! 💖';
+    
+    // Reset form
+    setTimeout(() => {
+      document.getElementById('req-name').value = '';
+      document.getElementById('req-whatsapp').value = '';
+      document.getElementById('req-email').value = '';
+      document.getElementById('req-message').value = '';
+      reqImages = [];
+      renderReqPreviews();
+    }, 3000);
+    
   } catch (err) {
     document.getElementById('req-result').innerHTML =
       '<span style="color:#f87171">❌ Error: ' + err.message + '</span>';

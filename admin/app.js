@@ -1,23 +1,20 @@
 /* =====================================================
-   LP ADMIN DASHBOARD — JavaScript
+   LP ADMIN DASHBOARD — JavaScript (FULLY FIXED)
    ===================================================== */
 
 // ── CONFIG ─────────────────────────────────────────────────
 const CONFIG = {
-  // After deploying Apps Script, paste the Web App URL here:
   API_URL: 'https://events-celebrating.vercel.app/api/proxy',
-  // Your GitHub Pages base URL (where lp.html lives):
   LP_BASE: 'https://events-celebrating.vercel.app/lp.html',
-  // Admin password (must match Code.gs ADMIN_PASS):
   ADMIN_PASS: '0000'
 };
 
 // ── STATE ──────────────────────────────────────────────────
-let uploadedImages  = []; // base64 objects waiting to upload
-let uploadedURLs    = []; // final Drive URLs
-let isUploading     = false;
-let currentTab      = 'create';
-let adminPass       = '';
+let uploadedImages = [];
+let uploadedURLs = [];
+let isUploading = false;
+let currentTab = 'create';
+let adminPass = '';
 
 // ── LOGIN ──────────────────────────────────────────────────
 document.getElementById('pass-input').addEventListener('keydown', e => {
@@ -28,7 +25,6 @@ function doLogin(){
   const val = document.getElementById('pass-input').value.trim();
   if(!val){ showErr('Please enter your password'); return; }
   adminPass = val;
-  // Quick validation — try fetching clients
   document.getElementById('login-btn').innerHTML = '<span class="spinner"></span>';
   apiGet({ action:'getAllClients', pass: adminPass })
     .then(data => {
@@ -38,7 +34,7 @@ function doLogin(){
       loadClientsData(data.data);
       loadRequestsData();
     })
-    .catch(() => { showErr('Connection error — check API_URL in config'); document.getElementById('login-btn').innerHTML='Enter →'; });
+    .catch(() => { showErr('Connection error'); document.getElementById('login-btn').innerHTML='Enter →'; });
 }
 function showErr(msg){ document.getElementById('login-err').textContent = msg; }
 function logout(){
@@ -76,14 +72,13 @@ function switchTab(tab, btn){
   currentTab = tab;
   document.getElementById('top-bar-title').textContent =
     tab === 'create' ? 'Create LP' : tab === 'clients' ? 'All LPs' : 'Requests';
-  // Close sidebar on mobile
   if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
-  if(tab === 'clients')  refreshClients();
+  if(tab === 'clients') refreshClients();
   if(tab === 'requests') refreshRequests();
 }
 
 function refreshData(){
-  if(currentTab === 'clients')  refreshClients();
+  if(currentTab === 'clients') refreshClients();
   if(currentTab === 'requests') refreshRequests();
   showToast('Refreshed', 'info');
 }
@@ -97,9 +92,9 @@ function handleImages(e){
     const reader = new FileReader();
     reader.onload = ev => {
       const dataUrl = ev.target.result;
-      const base64  = dataUrl.split(',')[1];
-      const mime    = file.type;
-      const name    = file.name;
+      const base64 = dataUrl.split(',')[1];
+      const mime = file.type;
+      const name = file.name;
       uploadedImages.push({ base64, mime, name, preview: dataUrl });
       renderPreviews();
     };
@@ -154,7 +149,7 @@ async function uploadAllImages(){
 // ── CREATE LP ──────────────────────────────────────────────
 async function createLP(){
   const name = document.getElementById('c-name').value.trim();
-  const msg  = document.getElementById('c-message').value.trim();
+  const msg = document.getElementById('c-message').value.trim();
   if(!name){ showToast('Please enter a name', 'error'); return; }
 
   const btn = document.getElementById('create-btn');
@@ -162,7 +157,6 @@ async function createLP(){
   btn.innerHTML = '<span class="spinner"></span> Uploading images...';
 
   try{
-    // Upload local images first
     let newURLs = [];
     if(uploadedImages.length > 0){
       newURLs = await uploadAllImages();
@@ -186,10 +180,10 @@ async function createLP(){
     showToast('LP created! 🎉', 'success');
 
     // Reset form
-    document.getElementById('c-name').value  = '';
+    document.getElementById('c-name').value = '';
     document.getElementById('c-message').value = '';
     uploadedImages = [];
-    uploadedURLs   = [];
+    uploadedURLs = [];
     renderPreviews();
 
   } catch(err){
@@ -205,7 +199,6 @@ function showResult(url){
   card.style.display = 'block';
   document.getElementById('result-link').value = url;
 
-  // QR Code
   const qrWrap = document.getElementById('qr-wrap');
   qrWrap.innerHTML = '';
   new QRCode(qrWrap, {
@@ -269,10 +262,10 @@ function loadClientsData(rows){
   `).join('');
 }
 
-// ── REQUESTS TABLE ─────────────────────────────────────────
+// ── REQUESTS TABLE (FIXED - WITH IMAGES & WHATSAPP) ────────
 async function refreshRequests(){
   document.getElementById('requests-tbody').innerHTML =
-    '<tr><td colspan="5" class="loading-row">Loading...</td></tr>';
+    '<tr><td colspan="7" class="loading-row">Loading...</td></tr>';
   const data = await apiGet({ action:'getAllRequests', pass: adminPass });
   loadRequestsData(data.data || []);
 }
@@ -287,22 +280,35 @@ async function loadRequestsData(rows){
 
   const tbody = document.getElementById('requests-tbody');
   if(!rows.length){
-    tbody.innerHTML = '<tr><td colspan="5" class="loading-row">No requests yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="loading-row">No requests yet</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(r => `
     <tr>
-      <td><strong>${esc(r.name)}</strong>${r.email?`<br><span style="font-size:.78rem;color:var(--text-dim)">${esc(r.email)}</span>`:''}</td>
+      <td><strong>${esc(r.name)}</strong></td>
+      <td>
+        ${r.whatsapp ? `<a href="https://wa.me/${r.whatsapp.replace(/[^0-9]/g, '')}" target="_blank" style="color:var(--success);text-decoration:none">📱 ${esc(r.whatsapp)}</a>` : '—'}
+        ${r.email?`<br><span style="font-size:.78rem;color:var(--text-dim)">${esc(r.email)}</span>`:''}
+      </td>
+      <td>
+        <div class="table-img-row">
+          ${(r.images||[]).slice(0,3).map(u=>`<img class="table-thumb" src="${u}" onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22><rect width=%2240%22 height=%2240%22 fill=%22%23ff2d78%22/><text x=%2220%22 y=%2225%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22white%22>📷</text></svg>'" alt=""/>`).join('')}
+          ${(r.images||[]).length>3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${r.images.length-3}</span>` : ''}
+        </div>
+      </td>
       <td style="max-width:180px;font-size:.85rem;color:var(--text-dim)">${esc(r.message||'—').substring(0,80)}${(r.message||'').length>80?'…':''}</td>
       <td style="color:var(--text-dim);font-size:.82rem">${formatDate(r.requested_at)}</td>
       <td><span class="status-badge status-${r.status}">${r.status}</span></td>
       <td>
         <div class="action-btns">
           ${r.status==='pending' ? `
-            <button class="action-btn success" onclick="approveRequest('${r.id}')">✅ Approve</button>
-            <button class="action-btn danger"  onclick="rejectRequest('${r.id}')">✕ Reject</button>
+            <button class="action-btn success" onclick="approveRequest('${r.id}','${esc(r.whatsapp||'')}')">✅ Approve</button>
+            <button class="action-btn danger" onclick="rejectRequest('${r.id}')">✕ Reject</button>
           ` : `
-            ${r.status==='approved' ? `<button class="action-btn" onclick="viewQR('lp_from_req_${r.id}','${esc(r.name)}')">🔗 QR</button>` : ''}
+            ${r.status==='approved' ? `
+              <button class="action-btn" onclick="viewQR('${r.lp_id||'lp_from_req_'+r.id}','${esc(r.name)}')">🔗 QR</button>
+              <button class="action-btn whatsapp-btn" onclick="sendWhatsApp('${r.lp_id||'lp_from_req_'+r.id}','${esc(r.whatsapp||'')}','${esc(r.name)}')">📱 Send WA</button>
+            ` : ''}
           `}
         </div>
       </td>
@@ -310,18 +316,38 @@ async function loadRequestsData(rows){
   `).join('');
 }
 
-async function approveRequest(id){
+async function approveRequest(id, whatsapp){
   if(!confirm('Approve this request and create their LP?')) return;
   const res = await apiPost({ action:'updateRequestStatus', pass:adminPass, id, status:'approved' });
   if(res.error){ showToast('Error: '+res.error,'error'); return; }
   showToast('Approved! LP created 🎉', 'success');
-  if(res.lpId){
+  
+  if(res.lpId && whatsapp){
     const url = `${CONFIG.LP_BASE}?id=${res.lpId}`;
-    showToast(`LP: ${url}`, 'info');
-    viewQR(res.lpId, 'New LP');
+    // Auto-open WhatsApp to send link
+    const waMsg = encodeURIComponent(`🎂 Hi! Your Birthday LP is ready! 💖\n\n${url}\n\nEnjoy your special day! 🎉`);
+    window.open(`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}?text=${waMsg}`, '_blank');
   }
+  
   refreshRequests();
 }
+
+function sendWhatsApp(lpId, whatsapp, name){
+  if(!whatsapp){ showToast('No WhatsApp number available', 'error'); return; }
+  const url = `${CONFIG.LP_BASE}?id=${lpId}`;
+  document.getElementById('send-wa-link').value = url;
+  
+  const cleanNumber = whatsapp.replace(/[^0-9]/g, '');
+  const waMsg = encodeURIComponent(`🎂 Hi ${name}! Your Birthday LP is ready! 💖\n\n${url}\n\nEnjoy your special day! 🎉`);
+  
+  document.getElementById('send-wa-action-btn').onclick = () => {
+    window.open(`https://wa.me/${cleanNumber}?text=${waMsg}`, '_blank');
+    document.getElementById('send-wa-modal').style.display = 'none';
+  };
+  
+  document.getElementById('send-wa-modal').style.display = 'flex';
+}
+
 async function rejectRequest(id){
   if(!confirm('Reject this request?')) return;
   await apiPost({ action:'updateRequestStatus', pass:adminPass, id, status:'rejected' });
@@ -331,18 +357,18 @@ async function rejectRequest(id){
 
 // ── EDIT MODAL ─────────────────────────────────────────────
 function openEdit(id, name, msg, status){
-  document.getElementById('edit-id').value     = id;
-  document.getElementById('edit-name').value   = name;
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-name').value = name;
   document.getElementById('edit-message').value= msg;
   document.getElementById('edit-status').value = status;
   document.getElementById('edit-modal').style.display = 'flex';
 }
 async function saveEdit(){
-  const id  = document.getElementById('edit-id').value;
+  const id = document.getElementById('edit-id').value;
   const res = await apiPost({
     action:'updateLP', pass:adminPass,
     id,
-    name:   document.getElementById('edit-name').value,
+    name: document.getElementById('edit-name').value,
     custom_message: document.getElementById('edit-message').value,
     status: document.getElementById('edit-status').value
   });
@@ -425,7 +451,7 @@ let toastTimer;
 function showToast(msg, type='info'){
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className   = `toast show ${type}`;
+  t.className = `toast show ${type}`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.className='toast', 3000);
 }

@@ -167,6 +167,8 @@
           <thead>
             <tr>
               <th>Name</th>
+              <th>WhatsApp</th>
+              <th>Images</th>
               <th>Message</th>
               <th>Date</th>
               <th>Status</th>
@@ -174,7 +176,7 @@
             </tr>
           </thead>
           <tbody id="requests-tbody">
-            <tr><td colspan="5" class="loading-row">Loading...</td></tr>
+            <tr><td colspan="7" class="loading-row">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -232,6 +234,21 @@
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" id="modal-dl-btn">⬇ Download QR</button>
+    </div>
+  </div>
+</div>
+
+<!-- SEND WHATSAPP MODAL -->
+<div class="modal-overlay" id="send-wa-modal" style="display:none" onclick="closeModal(event)">
+  <div class="modal-card modal-sm">
+    <div class="modal-header">
+      <h3>Send LP via WhatsApp</h3>
+      <button class="modal-close" onclick="document.getElementById('send-wa-modal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center">
+      <p style="margin-bottom:1rem;color:var(--text-dim)">Send this LP link to the user</p>
+      <input type="text" id="send-wa-link" readonly class="copy-input" style="margin-bottom:.8rem"/>
+      <button class="share-btn whatsapp" id="send-wa-action-btn" style="width:100%">📱 Open WhatsApp</button>
     </div>
   </div>
 </div>
