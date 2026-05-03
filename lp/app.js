@@ -15,22 +15,22 @@ const MUSIC = {
   maxAttempts: 5,
 
   init() {
-    // Use absolute path - adjust if your file structure differs
+    // ✅ VOTRE LIEN CLOUDINARY
     this.audio = new Audio('https://res.cloudinary.com/ds9v1rpfi/video/upload/v1777808988/love_zmgfmy.mp3');
     this.audio.loop = true;
     this.audio.volume = 0.6;
 
-    // Error handling for missing/broken audio file
+    // Error handling
     this.audio.addEventListener('error', (e) => {
       console.error('Audio error:', e);
       console.log('Audio source:', this.audio.src);
     });
 
-    // Try autoplay immediately (most browsers block this)
+    // Try autoplay immediately
     this._tryPlay();
 
-    // Setup interaction listeners that persist until music actually starts
-    const events = ['click', 'touchstart', 'keydown', 'scroll'];
+    // Setup interaction listeners
+    const events = ['click', 'touchstart', 'keydown'];
     
     const startOnInteraction = () => {
       if (this.started) {
@@ -41,7 +41,6 @@ const MUSIC = {
       this._tryPlay();
       this.initAttempts++;
       
-      // Only remove listeners if successful or too many attempts
       if (this.started || this.initAttempts >= this.maxAttempts) {
         this._cleanupListeners(startOnInteraction, events);
       }
