@@ -1,13 +1,12 @@
 /* =====================================================
-   BIRTHDAY LP PAGE — JavaScript (FULLY FIXED)
+   BIRTHDAY LP PAGE — JavaScript (FINAL FIX)
    ===================================================== */
 
-// ── CONFIG ────────────────────────────────────────────────
 const LP_CONFIG = {
   API_URL: 'https://events-celebrating.vercel.app/api/proxy'
 };
 
-// ── SILENT BACKGROUND MUSIC ───────────────────────────────
+// ── MUSIC ──────────────────────────────────────────────────
 const MUSIC = {
   audio: null,
   started: false,
@@ -32,10 +31,8 @@ const MUSIC = {
         this._cleanupListeners(startOnInteraction, events);
         return;
       }
-      
       this._tryPlay();
       this.initAttempts++;
-      
       if (this.started || this.initAttempts >= this.maxAttempts) {
         this._cleanupListeners(startOnInteraction, events);
       }
@@ -52,17 +49,11 @@ const MUSIC = {
 
   _tryPlay() {
     if (!this.audio || this.started) return;
-    
     const promise = this.audio.play();
     if (promise !== undefined) {
       promise
-        .then(() => {
-          this.started = true;
-          console.log('Music playing! 🎵');
-        })
-        .catch((err) => {
-          console.log('Autoplay blocked, waiting for user interaction...');
-        });
+        .then(() => { this.started = true; console.log('Music playing!'); })
+        .catch(() => { console.log('Autoplay blocked'); });
     }
   }
 };
@@ -463,17 +454,23 @@ function closeHeartFormation() {
   setTimeout(() => { hf.classList.remove('show'); hf.style.opacity = ''; hf.style.transition = ''; }, 500);
 }
 
-/* ── REQUEST FORM (FIXED) ─────────────────────────────────── */
+/* ── REQUEST FORM (RESTORED OLD WORKING METHOD) ─────────── */
 let reqImages = [];
 
 function handleReqImages(e) {
-  const files = Array.from(e.target.files);
+  const files = Array.from(e.target.files || []);
   const allowed = 6 - reqImages.length;
+  
   files.slice(0, allowed).forEach(f => {
     if (f.size > 5*1024*1024) return;
     const r = new FileReader();
     r.onload = ev => {
-      reqImages.push({ base64: ev.target.result.split(',')[1], mime: f.type, name: f.name, preview: ev.target.result });
+      // OLD METHOD: Store full dataURL with preview, extract base64 on submit
+      reqImages.push({ 
+        dataUrl: ev.target.result,  // Full data:image/jpeg;base64,...
+        mime: f.type, 
+        name: f.name 
+      });
       renderReqPreviews();
     };
     r.readAsDataURL(f);
@@ -485,7 +482,7 @@ function renderReqPreviews() {
   const wrap = document.getElementById('req-previews');
   wrap.innerHTML = reqImages.map((img, i) => `
     <div class="req-thumb">
-      <img src="${img.preview}" alt="" onclick="reqImages.splice(${i},1);renderReqPreviews()"/>
+      <img src="${img.dataUrl}" alt="" onclick="reqImages.splice(${i},1);renderReqPreviews()"/>
     </div>
   `).join('');
 }
@@ -500,19 +497,25 @@ async function submitRequest() {
   if (!whatsapp) { alert('Please enter your WhatsApp number'); return; }
 
   const btn = document.getElementById('req-submit-btn');
-  btn.disabled = true; btn.textContent = 'Sending... 💌';
-
-  const imageData = reqImages.map(i => i.base64);
+  btn.disabled = true; 
+  btn.textContent = 'Sending... 💌';
 
   try {
+    // OLD METHOD: Extract base64 from dataURL and send as JSON array
+    const imageData = reqImages.map(img => {
+      const commaIndex = img.dataUrl.indexOf(',');
+      return img.dataUrl.substring(commaIndex + 1);
+    });
+
     const payload = { 
       action: 'submitRequest', 
-      name, 
-      whatsapp,
-      email, 
-      message: msg, 
-      images: JSON.stringify(imageData) 
+      name: name, 
+      whatsapp: whatsapp,
+      email: email || '', 
+      message: msg || '', 
+      images: JSON.stringify(imageData)  // ← OLD WORKING METHOD
     };
+    
     const formBody = Object.entries(payload)
       .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v))
       .join('&');
@@ -522,6 +525,7 @@ async function submitRequest() {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: formBody
     });
+    
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
@@ -540,6 +544,7 @@ async function submitRequest() {
     }, 3000);
     
   } catch (err) {
+    console.error('Submit error:', err);
     document.getElementById('req-result').innerHTML =
       '<span style="color:#f87171">❌ Error: ' + err.message + '</span>';
     btn.disabled = false;

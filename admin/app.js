@@ -10,37 +10,13 @@ const CONFIG = {
 
 let uploadedImages = [];
 let uploadedURLs = [];
+let isUploading = false;
 let currentTab = 'create';
 let adminPass = '';
 
 // ── LOGIN ──────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-  const passInput = document.getElementById('pass-input');
-  if(passInput) {
-    passInput.addEventListener('keydown', e => {
-      if(e.key === 'Enter') doLogin();
-    });
-  }
-  
-  // Setup drag & drop
-  const zone = document.getElementById('upload-zone');
-  if(zone){
-    zone.addEventListener('dragover', e => { 
-      e.preventDefault(); 
-      zone.style.borderColor='var(--pink)'; 
-    });
-    zone.addEventListener('dragleave', () => { 
-      zone.style.borderColor=''; 
-    });
-    zone.addEventListener('drop', e => {
-      e.preventDefault(); 
-      zone.style.borderColor='';
-      const dt = e.dataTransfer;
-      if(dt && dt.files && dt.files.length) {
-        handleImages({ target:{ files: dt.files } });
-      }
-    });
-  }
+document.getElementById('pass-input').addEventListener('keydown', e => {
+  if(e.key === 'Enter') doLogin();
 });
 
 async function doLogin(){
@@ -72,7 +48,7 @@ async function doLogin(){
     
   } catch(err) {
     console.error('Login error:', err);
-    showErr('Connection error'); 
+    showErr('Connection error — check console'); 
     btn.innerHTML='Enter →'; 
     btn.disabled = false;
   }
@@ -130,76 +106,39 @@ function refreshData(){
   showToast('Refreshed', 'info');
 }
 
-// ── IMAGE UPLOAD (FULLY FIXED) ─────────────────────────────
+// ── IMAGE UPLOAD (FIXED) ───────────────────────────────────
 function handleImages(e){
   const files = Array.from(e.target.files || []);
-  const currentTotal = uploadedImages.length + uploadedURLs.length;
-  const allowed = Math.max(0, 6 - currentTotal);
+  const allowed = 6 - uploadedImages.length - uploadedURLs.length;
   
-  if(allowed <= 0){
-    showToast('Maximum 6 images allowed', 'error');
-    return;
-  }
-  
-  files.slice(0, allowed).forEach(file => {
-    if(!file || !file.size) return;
-    
+  files.slice(0, Math.max(0, allowed)).forEach(file => {
     if(file.size > 5*1024*1024){ 
-      showToast('Image too large (max 5MB): ' + (file.name || ''), 'error'); 
+      showToast('Image too large (max 5MB)', 'error'); 
       return; 
     }
     
-    // Validate file type
-    if(!file.type || !file.type.startsWith('image/')){
-      showToast('Invalid file type: ' + (file.name || ''), 'error');
-      return;
-    }
-    
     const reader = new FileReader();
-    
-    reader.onload = function(ev) {
-      try {
-        const dataUrl = ev.target.result;
-        if(!dataUrl || typeof dataUrl !== 'string') {
-          throw new Error('Invalid file data');
-        }
-        
-        // Clean base64 extraction
-        const commaIndex = dataUrl.indexOf(',');
-        if(commaIndex === -1) {
-          throw new Error('Invalid data URL format');
-        }
-        
-        const base64 = dataUrl.substring(commaIndex + 1);
-        // Remove any whitespace or newlines that might corrupt the base64
-        const cleanBase64 = base64.replace(/\s/g, '');
-        
-        const mime = file.type || 'image/jpeg';
-        const name = (file.name || 'image.jpg').replace(/[^a-zA-Z0-9.-]/g, '_');
-        
-        uploadedImages.push({ 
-          base64: cleanBase64, 
-          mime: mime, 
-          name: name, 
-          preview: dataUrl 
-        });
-        
-        renderPreviews();
-      } catch(err) {
-        console.error('File processing error:', err);
-        showToast('Error processing image: ' + (file.name || ''), 'error');
-      }
+    reader.onload = ev => {
+      const dataUrl = ev.target.result;
+      const base64 = dataUrl.split(',')[1];
+      const mime = file.type || 'image/jpeg';
+      const name = file.name || 'image.jpg';
+      
+      uploadedImages.push({ 
+        base64: base64, 
+        mime: mime, 
+        name: name, 
+        preview: dataUrl 
+      });
+      renderPreviews();
     };
-    
-    reader.onerror = function() {
-      showToast('Error reading file: ' + (file.name || ''), 'error');
+    reader.onerror = () => {
+      showToast('Error reading file', 'error');
     };
-    
     reader.readAsDataURL(file);
   });
   
-  // Reset input
-  if(e.target) e.target.value = '';
+  e.target.value = '';
 }
 
 function renderPreviews(){
@@ -213,11 +152,11 @@ function renderPreviews(){
     ...uploadedImages.map((i, idx) => ({ type:'local', url:i.preview, idx:idx }))
   ];
   
-  all.forEach((item) => {
+  all.forEach((item, i) => {
     const div = document.createElement('div');
     div.className = 'img-thumb';
     div.innerHTML = `
-      <img src="${item.url}" alt="" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Crect width=%2240%22 height=%2240%22 fill=%22%23ff2d78%22/%3E%3Ctext x=%2220%22 y=%2225%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22white%22%3E%F0%9F%93%B7%3C/text%3E%3C/svg%3E'"/>
+      <img src="${item.url}" alt="" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Crect width=%2240%22 height=%2240%22 fill=%22%23ff2d78%22/%3E%3Ctext x=%2220%22 y=%2225%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22white%22%3E📷%3C/text%3E%3C/svg%3E'"/>
       <button class="img-thumb-del" onclick="removeImage(${item.idx}, '${item.type}')">✕</button>
     `;
     wrap.appendChild(div);
@@ -237,8 +176,7 @@ function removeImage(idx, type){
 async function uploadAllImages(){
   const results = [];
   
-  for(let i = 0; i < uploadedImages.length; i++){
-    const img = uploadedImages[i];
+  for(const img of uploadedImages){
     try {
       const res = await apiPost({
         action:'uploadImage',
@@ -255,11 +193,9 @@ async function uploadAllImages(){
       
       if(res.url) {
         results.push(res.url);
-      } else {
-        throw new Error('No URL returned from upload');
       }
     } catch(err) {
-      console.error('Upload failed for image ' + i + ':', err);
+      console.error('Upload failed:', err);
       throw err;
     }
   }
@@ -267,7 +203,7 @@ async function uploadAllImages(){
   return results;
 }
 
-// ── CREATE LP (FULLY FIXED) ────────────────────────────────
+// ── CREATE LP (FIXED) ──────────────────────────────────────
 async function createLP(){
   const name = document.getElementById('c-name').value.trim();
   const msg = document.getElementById('c-message').value.trim();
@@ -295,15 +231,8 @@ async function createLP(){
 
     btn.innerHTML = '<span class="spinner"></span> Creating LP...';
     
-    // Ensure images is always a clean array
-    const allImages = [];
-    if(Array.isArray(uploadedURLs)){
-      uploadedURLs.forEach(url => {
-        if(url && typeof url === 'string' && url.trim()){
-          allImages.push(url.trim());
-        }
-      });
-    }
+    // Ensure images is always an array
+    const allImages = Array.isArray(uploadedURLs) ? uploadedURLs : [];
     
     const res = await apiPost({
       action:'createLP',
@@ -314,7 +243,6 @@ async function createLP(){
     });
 
     if(res.error) throw new Error(res.error);
-    if(!res.id) throw new Error('No LP ID returned');
 
     const lpUrl = `${CONFIG.LP_BASE}?id=${res.id}`;
     showResult(lpUrl);
@@ -355,7 +283,6 @@ function showResult(url){
     });
   } catch(e) {
     console.error('QR error:', e);
-    qrWrap.innerHTML = '<p style="color:#f87171">QR Error</p>';
   }
 }
 
@@ -374,8 +301,7 @@ function downloadQR(){
 function shareWA(){
   const link = document.getElementById('result-link').value;
   if(!link) return;
-  const text = encodeURIComponent('🎂 Your Birthday LP is ready! 💖 ' + link);
-  window.open(`https://wa.me/?text=${text}`, '_blank');
+  window.open(`https://wa.me/?text=${encodeURIComponent('🎂 Your Birthday LP is ready! 💖 ' + link)}`, '_blank');
 }
 
 // ── CLIENTS TABLE ──────────────────────────────────────────
@@ -409,7 +335,7 @@ function loadClientsData(rows){
   }
   
   tbody.innerHTML = rows.map(r => {
-    const images = parseImagesSafe(r.images);
+    const images = Array.isArray(r.images) ? r.images : [];
     return `
     <tr>
       <td><strong>${esc(r.name || '')}</strong></td>
@@ -473,9 +399,9 @@ async function loadRequestsData(rows){
   }
   
   tbody.innerHTML = rows.map(r => {
-    const images = parseImagesSafe(r.images);
+    const images = Array.isArray(r.images) ? r.images : [];
     const whatsapp = r.whatsapp || '';
-    const cleanWA = whatsapp.replace(/[^0-9+]/g, '');
+    const cleanWA = whatsapp.replace(/[^0-9]/g, '');
     
     return `
     <tr>
@@ -530,9 +456,8 @@ async function approveRequest(id, whatsapp){
     
     if(res.lpId && whatsapp){
       const url = `${CONFIG.LP_BASE}?id=${res.lpId}`;
-      const cleanNum = whatsapp.replace(/[^0-9]/g, '');
       const waMsg = encodeURIComponent(`🎂 Hi! Your Birthday LP is ready! 💖\n\n${url}\n\nEnjoy your special day! 🎉`);
-      window.open(`https://wa.me/${cleanNum}?text=${waMsg}`, '_blank');
+      window.open(`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}?text=${waMsg}`, '_blank');
     }
     
     refreshRequests();
@@ -665,8 +590,7 @@ function viewQR(id, name){
   const waBtn = document.getElementById('modal-wa-btn');
   if(waBtn) {
     waBtn.onclick = () => {
-      const text = encodeURIComponent('🎂 Happy Birthday LP for '+(name||'')+'! 💖 '+url);
-      window.open(`https://wa.me/?text=${text}`, '_blank');
+      window.open(`https://wa.me/?text=${encodeURIComponent('🎂 Happy Birthday LP for '+(name||'')+'! 💖 '+url)}`, '_blank');
     };
   }
 
@@ -727,22 +651,6 @@ function formatDate(str){
   }
 }
 
-function parseImagesSafe(imagesField){
-  if(!imagesField) return [];
-  if(Array.isArray(imagesField)) {
-    return imagesField.filter(u => u && typeof u === 'string');
-  }
-  if(typeof imagesField === 'string') {
-    if(imagesField.trim() === '') return [];
-    try {
-      const parsed = JSON.parse(imagesField);
-      if(Array.isArray(parsed)) return parsed.filter(u => u && typeof u === 'string');
-    } catch(_) {}
-    return imagesField.split(',').filter(s => s && s.trim());
-  }
-  return [];
-}
-
 let toastTimer;
 function showToast(msg, type='info'){
   const t = document.getElementById('toast');
@@ -751,4 +659,24 @@ function showToast(msg, type='info'){
   t.className = `toast show ${type}`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.className='toast', 3000);
+}
+
+// Drag-over styling for upload zone
+const zone = document.getElementById('upload-zone');
+if(zone){
+  zone.addEventListener('dragover', e => { 
+    e.preventDefault(); 
+    zone.style.borderColor='var(--pink)'; 
+  });
+  zone.addEventListener('dragleave', () => { 
+    zone.style.borderColor=''; 
+  });
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); 
+    zone.style.borderColor='';
+    const dt = e.dataTransfer;
+    if(dt && dt.files && dt.files.length) {
+      handleImages({ target:{ files: dt.files, value:'' } });
+    }
+  });
 }
