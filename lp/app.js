@@ -505,20 +505,11 @@ async function submitRequest() {
   const btn = document.getElementById('req-submit-btn');
   const resultEl = document.getElementById('req-result');
   btn.disabled = true;
-  btn.textContent = reqImages.length > 0 ? 'Uploading photos... 📸' : 'Sending... 💌';
+  btn.textContent = reqImages.length > 0 ? 'Sending with photos... 📸' : 'Sending... 💌';
   resultEl.innerHTML = '';
 
   try {
-    /* Step 1: Upload each image individually using JSON API (same as admin) */
-    const uploadedUrls = [];
-    for (let i = 0; i < reqImages.length; i++) {
-      btn.textContent = `Uploading photo ${i + 1}/${reqImages.length}... 📸`;
-      const url = await uploadOneImage(reqImages[i]);
-      uploadedUrls.push(url);
-    }
-
-    /* Step 2: Submit the request with hosted image URLs */
-    btn.textContent = 'Sending request... 💌';
+    /* Send request WITH base64 images directly — no upload step needed */
     const res = await fetch(LP_CONFIG.API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -528,7 +519,7 @@ async function submitRequest() {
         whatsapp: phone,
         email: email || '',
         message: msg || '',
-        images: uploadedUrls   /* already hosted URLs, not base64 */
+        images: reqImages  // ← send base64 objects directly: { base64, mime, name }
       })
     });
 
@@ -538,7 +529,6 @@ async function submitRequest() {
     resultEl.innerHTML = '<span style="color:#4ade80">✅ Request sent! We\'ll create your LP and send the link to your WhatsApp soon 💖</span>';
     btn.textContent = 'Sent! 💖';
 
-    /* Reset */
     setTimeout(() => {
       document.getElementById('req-name').value = '';
       document.getElementById('req-whatsapp').value = '';
