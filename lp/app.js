@@ -7,86 +7,45 @@ const LP_CONFIG = {
   API_URL: 'https://events-celebrating.vercel.app/api/proxy'
 };
 
-// ── MUSIC PLAYER ──────────────────────────────────────────
-// Uses SoundCloud oEmbed to embed the track invisibly and control it
+// ── SILENT BACKGROUND MUSIC ───────────────────────────────
+// Plays automatically on first user interaction (browser policy).
+// No visible controls shown to the user.
 const MUSIC = {
-  widget: null,
-  ready: false,
-  playing: false,
-  muted: false,
-  trackUrl: 'https://soundcloud.com/dzvri/love',
+  audio: null,
+  started: false,
 
   init() {
-    // Create hidden iframe with SoundCloud widget
-    const iframe = document.createElement('iframe');
-    iframe.id = 'sc-iframe';
-    iframe.allow = 'autoplay';
-    iframe.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;border:none;bottom:-10px;left:-10px;';
-    iframe.src = `https://w.soundcloud.com/player/?url=${encodeURIComponent(this.trackUrl)}&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false&buying=false&liking=false&download=false&sharing=false&color=%23ff2d78`;
-    document.body.appendChild(iframe);
+    this.audio = new Audio('audio/love.mp3');
+    this.audio.loop   = true;
+    this.audio.volume = 0.6;
 
-    // Load SoundCloud Widget API
-    const script = document.createElement('script');
-    script.src = 'https://w.soundcloud.com/player/api.js';
-    script.onload = () => {
-      this.widget = SC.Widget(iframe);
-      this.widget.bind(SC.Widget.Events.READY, () => {
-        this.ready = true;
-        this.widget.setVolume(70);
-      });
-      this.widget.bind(SC.Widget.Events.FINISH, () => {
-        // Loop the track
-        this.widget.seekTo(0);
-        this.widget.play();
-      });
+    // Try autoplay immediately (works on some browsers)
+    this._tryPlay();
+
+    // Fallback: play on very first user interaction anywhere on page
+    const startOnInteraction = () => {
+      if (this.started) return;
+      this._tryPlay();
+      // Remove all listeners once started
+      ['click','touchstart','touchend','keydown','scroll'].forEach(ev =>
+        document.removeEventListener(ev, startOnInteraction)
+      );
     };
-    document.head.appendChild(script);
+
+    ['click','touchstart','touchend','keydown','scroll'].forEach(ev =>
+      document.addEventListener(ev, startOnInteraction, { passive: true })
+    );
   },
 
-  play() {
-    if (!this.ready) {
-      // Retry after widget is ready
-      setTimeout(() => this.play(), 500);
-      return;
-    }
-    if (!this.playing) {
-      this.widget.play();
-      this.playing = true;
-      this._updateBtn();
-    }
-  },
-
-  toggleMute() {
-    if (!this.ready) return;
-    this.muted = !this.muted;
-    this.widget.setVolume(this.muted ? 0 : 70);
-    this._updateBtn();
-  },
-
-  togglePlay() {
-    if (!this.ready) return;
-    if (this.playing) {
-      this.widget.pause();
-      this.playing = false;
-    } else {
-      this.widget.play();
-      this.playing = true;
-    }
-    this._updateBtn();
-  },
-
-  _updateBtn() {
-    const btn = document.getElementById('music-btn');
-    if (!btn) return;
-    if (!this.playing) {
-      btn.innerHTML = '▶';
-      btn.title = 'Play music';
-    } else if (this.muted) {
-      btn.innerHTML = '🔇';
-      btn.title = 'Unmute music';
-    } else {
-      btn.innerHTML = '🎵';
-      btn.title = 'Mute music';
+  _tryPlay() {
+    if (!this.audio || this.started) return;
+    const promise = this.audio.play();
+    if (promise !== undefined) {
+      promise.then(() => {
+        this.started = true;
+      }).catch(() => {
+        // Browser blocked autoplay — will start on first interaction
+      });
     }
   }
 };
@@ -95,7 +54,7 @@ const MUSIC = {
 const params = new URLSearchParams(window.location.search);
 const lpId   = params.get('id');
 
-// Init music widget early
+// Start music as early as possible
 MUSIC.init();
 
 if (lpId) {
@@ -141,116 +100,11 @@ function initLP(lpData) {
 
   document.title = `Happy Birthday ${name}! 💖`;
 
-  // Inject music button into page
-  injectMusicBtn();
-
   initStars();
   initMatrix();
   initHearts();
   initConfetti();
   setTimeout(runCountdown, 400);
-}
-
-// ── MUSIC BUTTON ──────────────────────────────────────────
-function injectMusicBtn() {
-  if (document.getElementById('music-btn')) return;
-
-  const btn = document.createElement('button');
-  btn.id = 'music-btn';
-  btn.innerHTML = '🎵';
-  btn.title = 'Mute music';
-  btn.style.cssText = `
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 9999;
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    border: 2px solid rgba(255,45,120,0.6);
-    background: rgba(10,8,18,0.85);
-    backdrop-filter: blur(10px);
-    color: #fff;
-    font-size: 1.3rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 20px rgba(255,45,120,0.4);
-    transition: all 0.3s ease;
-    animation: musicPulse 2s ease-in-out infinite;
-  `;
-
-  // Add pulse animation style
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes musicPulse {
-      0%, 100% { box-shadow: 0 0 20px rgba(255,45,120,0.4); transform: scale(1); }
-      50% { box-shadow: 0 0 35px rgba(255,45,120,0.7); transform: scale(1.05); }
-    }
-    #music-btn:hover {
-      background: rgba(255,45,120,0.3) !important;
-      border-color: #ff2d78 !important;
-      transform: scale(1.1) !important;
-    }
-    #music-toast {
-      position: fixed;
-      bottom: 86px;
-      right: 24px;
-      background: rgba(10,8,18,0.9);
-      border: 1px solid rgba(255,45,120,0.4);
-      color: #fff;
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-size: 0.78rem;
-      font-family: 'Nunito', sans-serif;
-      backdrop-filter: blur(10px);
-      z-index: 9999;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: all 0.3s ease;
-      pointer-events: none;
-      white-space: nowrap;
-    }
-    #music-toast.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  `;
-  document.head.appendChild(style);
-
-  // Toast label
-  const toast = document.createElement('div');
-  toast.id = 'music-toast';
-  toast.textContent = '🎵 Tap to play music';
-
-  // First click = play, subsequent clicks = mute toggle
-  let firstClick = true;
-  btn.addEventListener('click', () => {
-    if (firstClick) {
-      firstClick = false;
-      MUSIC.play();
-      showMusicToast('🎵 Playing — Love');
-    } else {
-      MUSIC.toggleMute();
-      showMusicToast(MUSIC.muted ? '🔇 Muted' : '🎵 Unmuted');
-    }
-  });
-
-  document.body.appendChild(toast);
-  document.body.appendChild(btn);
-
-  // Show toast hint after 2 seconds
-  setTimeout(() => showMusicToast('🎵 Tap to play music'), 2000);
-}
-
-function showMusicToast(msg) {
-  const toast = document.getElementById('music-toast');
-  if (!toast) return;
-  toast.textContent = msg;
-  toast.classList.add('show');
-  clearTimeout(showMusicToast._t);
-  showMusicToast._t = setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
 // ── STARS ─────────────────────────────────────────────────
@@ -279,7 +133,8 @@ function initMatrix() {
     for (let i = 0; i < drops.length; i++) {
       const ch = chars[Math.floor(Math.random() * chars.length)];
       ctx.fillStyle = Math.random() > .85 ? '#ff2d78' : `rgba(255,${Math.floor(Math.random()*60+20)},${Math.floor(Math.random()*80+40)},${0.5+Math.random()*0.5})`;
-      ctx.font = `${fs}px monospace`; ctx.fillText(ch, i * fs, drops[i] * fs);
+      ctx.font = `${fs}px monospace`;
+      ctx.fillText(ch, i * fs, drops[i] * fs);
       if (drops[i] * fs > cv.height && Math.random() > .975) drops[i] = 0;
       drops[i]++;
     }
@@ -388,7 +243,8 @@ let spreads = [];
 
 function buildSpreads() {
   const s = [];
-  for (let i = 0; i < BOOK_IMAGES.length; i += 2) s.push([BOOK_IMAGES[i] || null, BOOK_IMAGES[i+1] || null]);
+  for (let i = 0; i < BOOK_IMAGES.length; i += 2)
+    s.push([BOOK_IMAGES[i] || null, BOOK_IMAGES[i+1] || null]);
   s.push([null, null]);
   return s;
 }
@@ -445,18 +301,23 @@ const FLIP_THRESHOLD = 80;
 
 function startDrag(e) {
   if (isAnimating) return;
-  isDragging = true; dragStartX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+  isDragging = true;
+  dragStartX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
   dragProgress = 0; flipPage.style.transition = 'none';
-  document.addEventListener('mousemove', onDrag); document.addEventListener('mouseup', endDrag);
-  document.addEventListener('touchmove', onDrag, { passive: false }); document.addEventListener('touchend', endDrag);
+  document.addEventListener('mousemove', onDrag);
+  document.addEventListener('mouseup', endDrag);
+  document.addEventListener('touchmove', onDrag, { passive: false });
+  document.addEventListener('touchend', endDrag);
 }
 function onDrag(e) {
   if (!isDragging) return; if (e.cancelable) e.preventDefault();
   const x = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
   dragProgress = dragStartX - x;
   const pct = Math.max(0, Math.min(1, dragProgress / 200));
-  if (dragProgress > 0 && currentSpread < spreads.length - 1) flipPage.style.transform = `rotateY(-${pct*180}deg)`;
-  else if (dragProgress < 0 && currentSpread > 0) flipPage.style.transform = `rotateY(${Math.min(20, Math.abs(dragProgress)*.2)}deg)`;
+  if (dragProgress > 0 && currentSpread < spreads.length - 1)
+    flipPage.style.transform = `rotateY(-${pct*180}deg)`;
+  else if (dragProgress < 0 && currentSpread > 0)
+    flipPage.style.transform = `rotateY(${Math.min(20, Math.abs(dragProgress)*.2)}deg)`;
 }
 function endDrag() {
   if (!isDragging) return; isDragging = false;
@@ -473,7 +334,8 @@ function flipForward() {
   const next = spreads[currentSpread + 1];
   flipBack.innerHTML = getSpreadHTML(next[0], 'left', currentSpread + 1, spreads.length);
   flipBack.style.borderRadius = '12px 0 0 12px';
-  flipPage.style.transition = 'transform 0.65s cubic-bezier(0.645,0.045,0.355,1.000)'; flipPage.style.transform = 'rotateY(-180deg)';
+  flipPage.style.transition = 'transform 0.65s cubic-bezier(0.645,0.045,0.355,1.000)';
+  flipPage.style.transform = 'rotateY(-180deg)';
   setTimeout(() => {
     currentSpread++; renderSpread(currentSpread);
     flipPage.style.transition = 'none'; flipPage.style.transform = 'rotateY(0deg)'; isAnimating = false;
@@ -487,7 +349,8 @@ function flipBackward() {
   flipBack.style.borderRadius = '0 12px 12px 0';
   flipPage.style.transition = 'none'; flipPage.style.transform = 'rotateY(-180deg)';
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    flipPage.style.transition = 'transform 0.65s cubic-bezier(0.645,0.045,0.355,1.000)'; flipPage.style.transform = 'rotateY(0deg)';
+    flipPage.style.transition = 'transform 0.65s cubic-bezier(0.645,0.045,0.355,1.000)';
+    flipPage.style.transform = 'rotateY(0deg)';
   }));
   setTimeout(() => { currentSpread--; renderSpread(currentSpread); isAnimating = false; }, 650);
 }
@@ -511,12 +374,16 @@ function closeBook() {
 if (openBookEl) {
   openBookEl.addEventListener('click', function(e) {
     if (isAnimating || isDragging) return;
-    const r = openBookEl.getBoundingClientRect(); const x = e.clientX - r.left; const hw = r.width / 2;
+    const r = openBookEl.getBoundingClientRect();
+    const x = e.clientX - r.left; const hw = r.width / 2;
     if (x > hw * 1.3) flipForward();
     else if (x < hw * .7 && currentSpread > 0) flipBackward();
   });
 }
-if (staticLeft) { staticLeft.addEventListener('touchstart', startDrag); staticLeft.addEventListener('mousedown', startDrag); }
+if (staticLeft) {
+  staticLeft.addEventListener('touchstart', startDrag);
+  staticLeft.addEventListener('mousedown', startDrag);
+}
 
 /* ── HEART FORMATION ─────────────────────────────── */
 function showHeartFormation() {
@@ -545,15 +412,18 @@ function showHeartFormation() {
   }
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   rawPts.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
-  const pad = SIZE * .12, scX = (SIZE - pad*2) / (maxX - minX), scY = (SIZE - pad*2) / (maxY - minY), sc = Math.min(scX, scY);
-  const oX = pad + ((SIZE - pad*2) - (maxX - minX) * sc) / 2, oY = pad + ((SIZE - pad*2) - (maxY - minY) * sc) / 2;
-  const toC = p => ({ x: oX + (p.x - minX) * sc, y: oY + (p.y - minY) * sc });
-  const CW = SIZE * 0.26, CH = SIZE * 0.28, cPad = SIZE * 0.018, cBot = SIZE * 0.06, iW = CW - cPad*2, iH = CH - cPad - cBot;
+  const pad = SIZE * .12, scX = (SIZE-pad*2)/(maxX-minX), scY = (SIZE-pad*2)/(maxY-minY), sc = Math.min(scX, scY);
+  const oX = pad + ((SIZE-pad*2)-(maxX-minX)*sc)/2, oY = pad + ((SIZE-pad*2)-(maxY-minY)*sc)/2;
+  const toC = p => ({ x: oX + (p.x-minX)*sc, y: oY + (p.y-minY)*sc });
+  const CW = SIZE*0.26, CH = SIZE*0.28, cPad = SIZE*0.018, cBot = SIZE*0.06, iW = CW-cPad*2, iH = CH-cPad-cBot;
   const svgEl = document.getElementById('hf-heart-glow');
   const pathEl = document.getElementById('hf-heart-path');
   svgEl.setAttribute('viewBox', `0 0 ${SIZE} ${SIZE}`);
   const svgD = [];
-  for (let i = 0; i <= 300; i++) { const t = (i/300)*2*Math.PI; const p = toC(hXY(t)); svgD.push(i === 0 ? `M${p.x.toFixed(1)},${p.y.toFixed(1)}` : `L${p.x.toFixed(1)},${p.y.toFixed(1)}`); }
+  for (let i = 0; i <= 300; i++) {
+    const t = (i/300)*2*Math.PI; const p = toC(hXY(t));
+    svgD.push(i === 0 ? `M${p.x.toFixed(1)},${p.y.toFixed(1)}` : `L${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+  }
   pathEl.setAttribute('d', svgD.join('') + 'Z');
   setTimeout(() => svgEl.classList.add('visible'), 400);
   rawPts.forEach((rp, i) => {
@@ -563,9 +433,13 @@ function showHeartFormation() {
     card.style.cssText = `width:${CW}px;height:${CH}px;left:${cp.x-CW/2}px;top:${cp.y-CH/2}px;padding:${cPad}px ${cPad}px ${cBot}px ${cPad}px;transform:scale(0) rotate(${tilt}deg);opacity:0;`;
     card.innerHTML = `<img src="${img}" alt="" style="width:${iW}px;height:${iH}px;object-fit:cover;display:block;border-radius:2px"/>`;
     canvas.appendChild(card);
-    setTimeout(() => { card.style.transition = 'opacity .4s ease, transform .55s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow .3s'; card.style.transform = `scale(1) rotate(${tilt}deg)`; card.style.opacity = '1'; }, i * 100);
+    setTimeout(() => {
+      card.style.transition = 'opacity .4s ease, transform .55s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow .3s';
+      card.style.transform = `scale(1) rotate(${tilt}deg)`; card.style.opacity = '1';
+    }, i * 100);
   });
 }
+
 function closeHeartFormation() {
   const hf = document.getElementById('heart-formation');
   document.getElementById('hf-heart-glow').classList.remove('visible');
