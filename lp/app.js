@@ -1,5 +1,5 @@
 /* =====================================================
-   BIRTHDAY LP PAGE — JavaScript
+   BIRTHDAY LP PAGE — JavaScript (FIXED)
    ===================================================== */
 
 // ── CONFIG ────────────────────────────────────────────────
@@ -7,52 +7,75 @@ const LP_CONFIG = {
   API_URL: 'https://events-celebrating.vercel.app/api/proxy'
 };
 
-// ── SILENT BACKGROUND MUSIC ───────────────────────────────
-// Plays automatically on first user interaction (browser policy).
-// No visible controls shown to the user.
+// ── SILENT BACKGROUND MUSIC (FIXED) ──────────────────────
 const MUSIC = {
   audio: null,
   started: false,
+  initAttempts: 0,
+  maxAttempts: 5,
 
   init() {
-    this.audio = new Audio('../audio/love.mp3');
-    this.audio.loop   = true;
+    // Use absolute path - adjust if your file structure differs
+    this.audio = new Audio('./audio/love.mp3');
+    this.audio.loop = true;
     this.audio.volume = 0.6;
 
-    // Try autoplay immediately (works on some browsers)
+    // Error handling for missing/broken audio file
+    this.audio.addEventListener('error', (e) => {
+      console.error('Audio error:', e);
+      console.log('Audio source:', this.audio.src);
+    });
+
+    // Try autoplay immediately (most browsers block this)
     this._tryPlay();
 
-    // Fallback: play on very first user interaction anywhere on page
+    // Setup interaction listeners that persist until music actually starts
+    const events = ['click', 'touchstart', 'keydown', 'scroll'];
+    
     const startOnInteraction = () => {
-      if (this.started) return;
+      if (this.started) {
+        this._cleanupListeners(startOnInteraction, events);
+        return;
+      }
+      
       this._tryPlay();
-      // Remove all listeners once started
-      ['click','touchstart','touchend','keydown','scroll'].forEach(ev =>
-        document.removeEventListener(ev, startOnInteraction)
-      );
+      this.initAttempts++;
+      
+      // Only remove listeners if successful or too many attempts
+      if (this.started || this.initAttempts >= this.maxAttempts) {
+        this._cleanupListeners(startOnInteraction, events);
+      }
     };
 
-    ['click','touchstart','touchend','keydown','scroll'].forEach(ev =>
+    events.forEach(ev =>
       document.addEventListener(ev, startOnInteraction, { passive: true })
     );
   },
 
+  _cleanupListeners(fn, events) {
+    events.forEach(ev => document.removeEventListener(ev, fn));
+  },
+
   _tryPlay() {
     if (!this.audio || this.started) return;
+    
     const promise = this.audio.play();
     if (promise !== undefined) {
-      promise.then(() => {
-        this.started = true;
-      }).catch(() => {
-        // Browser blocked autoplay — will start on first interaction
-      });
+      promise
+        .then(() => {
+          this.started = true;
+          console.log('Music playing! 🎵');
+        })
+        .catch((err) => {
+          console.log('Autoplay blocked, waiting for user interaction...');
+        });
     }
   }
 };
 
 // ── PAGE INIT ─────────────────────────────────────────────
 const params = new URLSearchParams(window.location.search);
-const lpId   = params.get('id');
+const lpId = params.get('id');
 
 // Start music as early as possible
 MUSIC.init();
@@ -69,7 +92,7 @@ async function loadLP(id) {
     const url = new URL(LP_CONFIG.API_URL);
     url.searchParams.set('action', 'getLP');
     url.searchParams.set('id', id);
-    const res  = await fetch(url.toString());
+    const res = await fetch(url.toString());
     const data = await res.json();
     if (data.error || !data.data) { showError(); return; }
     initLP(data.data);
@@ -89,7 +112,7 @@ let BOOK_IMAGES = [];
 function initLP(lpData) {
   BOOK_IMAGES = lpData.images || [];
   const name = lpData.name || 'You';
-  const msg  = lpData.custom_message || '';
+  const msg = lpData.custom_message || '';
 
   document.getElementById('word-name').textContent = name.toUpperCase();
 
@@ -169,8 +192,8 @@ function initConfetti() {
 // ── COUNTDOWN + SEQUENCE ──────────────────────────────────
 function runCountdown() {
   const overlay = document.getElementById('countdown-overlay');
-  const numEl   = document.getElementById('countdown-num');
-  const steps   = ['3','2','1','GO!'];
+  const numEl = document.getElementById('countdown-num');
+  const steps = ['3','2','1','GO!'];
   let i = 0;
   function tick() {
     numEl.textContent = steps[i];
@@ -228,16 +251,16 @@ function startSequence() {
    BOOK ENGINE
    ═══════════════════════════════════════════════════ */
 let bookOpen = false, currentSpread = 0, isAnimating = false, totalSpreads = 0;
-const closedBook   = document.getElementById('closed-book');
+const closedBook = document.getElementById('closed-book');
 const openBookWrap = document.getElementById('open-book-wrap');
-const openBookEl   = document.getElementById('open-book');
-const staticLeft   = document.getElementById('static-left');
-const flipPage     = document.getElementById('flip-page');
-const flipFront    = document.getElementById('flip-front');
-const flipBack     = document.getElementById('flip-back');
+const openBookEl = document.getElementById('open-book');
+const staticLeft = document.getElementById('static-left');
+const flipPage = document.getElementById('flip-page');
+const flipFront = document.getElementById('flip-front');
+const flipBack = document.getElementById('flip-back');
 const bookProgress = document.getElementById('book-progress');
-const arrowLeft    = document.getElementById('arrow-left');
-const arrowRight   = document.getElementById('arrow-right');
+const arrowLeft = document.getElementById('arrow-left');
+const arrowRight = document.getElementById('arrow-right');
 
 let spreads = [];
 
@@ -264,8 +287,8 @@ function renderSpread(idx) {
   if (!spreads.length) return;
   const spread = spreads[idx];
   staticLeft.innerHTML = getSpreadHTML(spread[0], 'left', idx, spreads.length);
-  flipFront.innerHTML  = getSpreadHTML(spread[1], 'right', idx, spreads.length);
-  arrowLeft.style.opacity  = idx > 0 ? '0.4' : '0.1';
+  flipFront.innerHTML = getSpreadHTML(spread[1], 'right', idx, spreads.length);
+  arrowLeft.style.opacity = idx > 0 ? '0.4' : '0.1';
   arrowRight.style.opacity = idx < spreads.length - 1 ? '0.4' : '0.1';
   document.querySelectorAll('.prog-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
 }
@@ -475,9 +498,9 @@ function renderReqPreviews() {
 }
 
 async function submitRequest() {
-  const name  = document.getElementById('req-name').value.trim();
+  const name = document.getElementById('req-name').value.trim();
   const email = document.getElementById('req-email').value.trim();
-  const msg   = document.getElementById('req-message').value.trim();
+  const msg = document.getElementById('req-message').value.trim();
   if (!name) { alert('Please enter your name'); return; }
 
   const btn = document.getElementById('req-submit-btn');
