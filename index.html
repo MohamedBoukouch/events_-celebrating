@@ -159,8 +159,8 @@
 
     <!-- ═══════════════════════════════════════
          TAB: REQUESTS
-         Columns: Name | Phone | Message | Date | Status | Actions
-         Newest first. No images column.
+         Plain form. Newest first. No images.
+         Admin writes message when approving.
          ═══════════════════════════════════════ -->
     <section class="tab-content" id="tab-requests">
       <div class="section-header">
@@ -173,14 +173,13 @@
             <tr>
               <th>Name</th>
               <th>Phone / Email</th>
-              <th>Message</th>
               <th>Date</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="requests-tbody">
-            <tr><td colspan="6" class="loading-row">Loading...</td></tr>
+            <tr><td colspan="5" class="loading-row">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -217,6 +216,48 @@
     <div class="modal-footer">
       <button class="btn-secondary" onclick="document.getElementById('edit-modal').style.display='none'">Cancel</button>
       <button class="btn-primary"   onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- APPROVE REQUEST MODAL -->
+<div class="modal-overlay" id="approve-modal" style="display:none" onclick="closeModal(event)">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Approve Request & Create LP</h3>
+      <button class="modal-close" onclick="document.getElementById('approve-modal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="approve-req-id"/>
+      <input type="hidden" id="approve-whatsapp"/>
+      <div class="form-group">
+        <label>Person's Name</label>
+        <input type="text" id="approve-name" class="form-input" readonly/>
+      </div>
+      <div class="form-group">
+        <label>WhatsApp</label>
+        <input type="text" id="approve-wa-display" class="form-input" readonly/>
+      </div>
+      <div class="form-group">
+        <label>Custom Message for this person *</label>
+        <textarea id="approve-message" class="form-textarea" rows="4" placeholder="Write a sweet birthday message for this person..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Upload Images (up to 6)</label>
+        <div class="upload-zone" id="approve-upload-zone" onclick="document.getElementById('approve-img-input').click()">
+          <div class="upload-icon">📸</div>
+          <div class="upload-text">Click or drag images here</div>
+          <div class="upload-sub">PNG, JPG, GIF — max 5MB each</div>
+          <input type="file" id="approve-img-input" accept="image/*" multiple style="display:none" onchange="handleApproveImages(event)"/>
+        </div>
+        <div class="image-previews" id="approve-image-previews"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="document.getElementById('approve-modal').style.display='none'">Cancel</button>
+      <button class="btn-primary"   onclick="confirmApprove()" id="approve-btn">
+        <span>✅ Approve & Create LP</span>
+      </button>
     </div>
   </div>
 </div>

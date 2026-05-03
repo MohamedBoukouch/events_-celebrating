@@ -1,8 +1,9 @@
 /* =====================================================
    LP ADMIN DASHBOARD — admin/app.js
-   • Requests: newest first, phone number shown, no images column
+   • Requests: newest first, phone number shown, NO images column
    • After approve → show Share Link + QR buttons in row
-   • No image upload anywhere in requests flow
+   • NO image upload anywhere in requests flow (except approve modal)
+   • CACHE BUSTING on all GET requests to prevent stale data
    ===================================================== */
 
 const CONFIG = {
@@ -16,6 +17,10 @@ let uploadedImages = [];
 let uploadedURLs   = [];
 let currentTab     = 'create';
 let adminPass      = '';
+
+// Approve modal images
+let approveImages = [];
+let approveURLs   = [];
 
 /* ── PROXY HELPER ─────────────────────────────────── */
 function toProxiedUrl(url) {
@@ -76,11 +81,13 @@ function logout() {
   document.getElementById('dashboard').classList.add('hidden');
 }
 
-/* ── API ──────────────────────────────────────────── */
+/* ── API — WITH CACHE BUSTING ─────────────────────── */
 async function apiGet(params) {
   const url = new URL(CONFIG.API_URL);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
-  const res = await fetch(url.toString());
+  // CACHE BUST: add timestamp to prevent CDN/browser caching [^2^]
+  url.searchParams.set('_t', Date.now());
+  const res = await fetch(url.toString(), { cache: 'no-store' });
   return res.json();
 }
 
@@ -279,19 +286,19 @@ function loadClientsData(rows) {
   }).join('');
 }
 
-/* ── REQUESTS TABLE ───────────────────────────────── */
-// Columns: Name | Phone | Message | Date | Status | Actions
-// Newest first. After approve: show QR + Share buttons.
-
+/* ═══════════════════════════════════════════════════
+   REQUESTS TABLE — PLAIN FORM, NO IMAGES COLUMN
+   Newest first. Admin writes message when approving.
+   ═══════════════════════════════════════════════════ */
 async function refreshRequests() {
   const tbody = document.getElementById('requests-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="loading-row">Loading...</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="loading-row">Loading...</td></tr>';
   try {
     const data = await apiGet({ action: 'getAllRequests', pass: adminPass });
     loadRequestsData(data.data || []);
   } catch (err) {
     console.error(err);
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="loading-row">Error loading</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="loading-row">Error loading</td></tr>';
   }
 }
 
@@ -312,7 +319,7 @@ async function loadRequestsData(rows) {
   if (!tbody) return;
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="loading-row">No requests yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="loading-row">No requests yet</td></tr>';
     return;
   }
 
@@ -325,7 +332,7 @@ async function loadRequestsData(rows) {
     let actionsHtml = '';
     if (r.status === 'pending') {
       actionsHtml = `
-        <button class="action-btn success" onclick="approveRequest('${esc(r.id)}','${esc(whatsapp)}')">✅ Approve</button>
+        <button class="action-btn success" onclick="openApproveModal('${esc(r.id)}','${esc(r.name)}','${esc(whatsapp)}')">✅ Approve</button>
         <button class="action-btn danger"  onclick="rejectRequest('${esc(r.id)}')">✕ Reject</button>`;
     } else if (r.status === 'approved' && r.lp_id) {
       actionsHtml = `
@@ -344,7 +351,6 @@ async function loadRequestsData(rows) {
           : '<span style="color:var(--text-dim)">—</span>'}
         ${r.email ? `<br><span style="font-size:.75rem;color:var(--text-dim)">${esc(r.email)}</span>` : ''}
       </td>
-      <td style="max-width:180px;font-size:.85rem;color:var(--text-dim)">${esc((r.message||'').substring(0,80))}${(r.message||'').length>80?'…':''}</td>
       <td style="color:var(--text-dim);font-size:.82rem;white-space:nowrap">${formatDate(r.requested_at)}</td>
       <td><span class="status-badge status-${r.status||'pending'}">${r.status||'pending'}</span></td>
       <td>
@@ -354,21 +360,143 @@ async function loadRequestsData(rows) {
   }).join('');
 }
 
-/* ── APPROVE ──────────────────────────────────────── */
-async function approveRequest(id, whatsapp) {
-  if (!confirm('Approve this request and create their LP?')) return;
+/* ═══════════════════════════════════════════════════
+   APPROVE MODAL — Admin writes message + uploads images
+   ═══════════════════════════════════════════════════ */
+function openApproveModal(id, name, whatsapp) {
+  document.getElementById('approve-req-id').value = id;
+  document.getElementById('approve-whatsapp').value = whatsapp;
+  document.getElementById('approve-name').value = name;
+  document.getElementById('approve-wa-display').value = whatsapp;
+  document.getElementById('approve-message').value = '';
+  approveImages = [];
+  approveURLs   = [];
+  renderApprovePreviews();
+  document.getElementById('approve-modal').style.display = 'flex';
+}
+
+function handleApproveImages(e) {
+  const files   = Array.from(e.target.files || []);
+  const allowed = 6 - approveImages.length - approveURLs.length;
+  files.slice(0, Math.max(0, allowed)).forEach(file => {
+    if (file.size > 5 * 1024 * 1024) { showToast('Image too large (max 5MB)', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const dataUrl = ev.target.result;
+      approveImages.push({ base64: dataUrl.split(',')[1], mime: file.type || 'image/jpeg', name: file.name || 'image.jpg', preview: dataUrl });
+      renderApprovePreviews();
+    };
+    reader.onerror = () => showToast('Error reading file', 'error');
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+}
+
+function renderApprovePreviews() {
+  const wrap = document.getElementById('approve-image-previews');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  const all = [
+    ...approveURLs.map((u, idx) => ({ type: 'url',   url: toProxiedUrl(u), idx })),
+    ...approveImages.map((img, idx) => ({ type: 'local', url: img.preview,       idx }))
+  ];
+  all.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'img-thumb';
+    div.innerHTML = `
+      <img src="${item.url}" alt=""
+        onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Crect width=%2240%22 height=%2240%22 fill=%22%23ff2d78%22/%3E%3Ctext x=%2220%22 y=%2225%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22white%22%3E📷%3C/text%3E%3C/svg%3E'"/>
+      <button class="img-thumb-del" onclick="removeApproveImage(${item.idx},'${item.type}')">✕</button>`;
+    wrap.appendChild(div);
+  });
+}
+
+function removeApproveImage(idx, type) {
+  if (type === 'url') approveURLs.splice(idx, 1);
+  else                approveImages.splice(idx, 1);
+  renderApprovePreviews();
+}
+
+async function uploadApproveImages() {
+  const results = [];
+  for (const img of approveImages) {
+    const res = await apiPost({ action: 'uploadImage', pass: adminPass, data: img.base64, mimeType: img.mime, filename: img.name });
+    if (res.error) throw new Error(res.error);
+    if (res.url)   results.push(res.url);
+  }
+  return results;
+}
+
+async function confirmApprove() {
+  const id       = document.getElementById('approve-req-id').value;
+  const name     = document.getElementById('approve-name').value;
+  const whatsapp = document.getElementById('approve-whatsapp').value;
+  const message  = document.getElementById('approve-message').value.trim();
+
+  if (!message) {
+    showToast('Please write a custom message for this person', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('approve-btn');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner"></span> Creating...';
+
   try {
-    const res = await apiPost({ action: 'updateRequestStatus', pass: adminPass, id, status: 'approved' });
-    if (res.error) { showToast('Error: ' + res.error, 'error'); return; }
+    // Upload images first
+    if (approveImages.length > 0) {
+      btn.innerHTML = '<span class="spinner"></span> Uploading images...';
+      const newURLs = await uploadApproveImages();
+      approveURLs   = [...approveURLs, ...newURLs];
+      approveImages = [];
+      renderApprovePreviews();
+    }
+
+    // Create LP with message and images
+    btn.innerHTML = '<span class="spinner"></span> Creating LP...';
+    const createRes = await apiPost({
+      action: 'createLP',
+      pass: adminPass,
+      name,
+      images: approveURLs,
+      custom_message: message
+    });
+
+    if (createRes.error) throw new Error(createRes.error);
+
+    // Update request status with lp_id
+    const updateRes = await apiPost({
+      action: 'updateRequestStatus',
+      pass: adminPass,
+      id,
+      status: 'approved',
+      lp_id: createRes.id
+    });
+
+    if (updateRes.error) throw new Error(updateRes.error);
+
     showToast('Approved! LP created 🎉', 'success');
-    // Auto-open WhatsApp if number available
-    if (res.lpId && whatsapp) {
-      const url   = `${CONFIG.LP_BASE}?id=${res.lpId}`;
+    document.getElementById('approve-modal').style.display = 'none';
+
+    // Auto-open WhatsApp
+    if (whatsapp) {
+      const url   = `${CONFIG.LP_BASE}?id=${createRes.id}`;
       const waMsg = encodeURIComponent(`🎂 Hi! Your Birthday LP is ready! 💖\n\n${url}\n\nEnjoy your special day! 🎉`);
       window.open(`https://wa.me/${whatsapp.replace(/[^0-9]/g,'')}?text=${waMsg}`, '_blank');
     }
+
+    // Reset
+    approveImages = [];
+    approveURLs   = [];
     refreshRequests();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+
+  } catch (err) {
+    console.error(err);
+    showToast('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled  = false;
+    btn.innerHTML = '<span>✅ Approve & Create LP</span>';
+  }
 }
 
 async function rejectRequest(id) {
@@ -383,7 +511,6 @@ async function rejectRequest(id) {
 function copyLpLink(url) {
   if (!url) { showToast('No LP link available', 'error'); return; }
   navigator.clipboard.writeText(url).then(() => showToast('Link copied! ✓', 'success')).catch(() => {
-    // fallback
     const el = document.createElement('input');
     el.value = url;
     document.body.appendChild(el);
@@ -518,5 +645,18 @@ if (zone) {
     zone.style.borderColor = '';
     const dt = e.dataTransfer;
     if (dt && dt.files && dt.files.length) handleImages({ target: { files: dt.files, value: '' } });
+  });
+}
+
+// Drag-and-drop on approve upload zone
+const approveZone = document.getElementById('approve-upload-zone');
+if (approveZone) {
+  approveZone.addEventListener('dragover',  e => { e.preventDefault(); approveZone.style.borderColor = 'var(--pink)'; });
+  approveZone.addEventListener('dragleave', () => { approveZone.style.borderColor = ''; });
+  approveZone.addEventListener('drop', e => {
+    e.preventDefault();
+    approveZone.style.borderColor = '';
+    const dt = e.dataTransfer;
+    if (dt && dt.files && dt.files.length) handleApproveImages({ target: { files: dt.files, value: '' } });
   });
 }

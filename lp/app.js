@@ -1,7 +1,7 @@
 /* =====================================================
-   BIRTHDAY LP PAGE — app.js
+   BIRTHDAY LP PAGE — lp/app.js
    Music plays ONLY when ?id= is present (LP page).
-   Request form has NO image upload.
+   Request form has NO message field, NO image upload.
    ===================================================== */
 
 const LP_CONFIG = {
@@ -32,12 +32,11 @@ const lpId   = params.get('id');
 if (lpId) {
   // ── LP PAGE ──────────────────────────────────────
   document.getElementById('lp-screen').style.display = 'block';
-  initMusic();   // music only here
+  initMusic();
   loadLP(lpId);
 } else {
   // ── REQUEST FORM ─────────────────────────────────
   document.getElementById('request-screen').style.display = 'flex';
-  // NO music on request form
 }
 
 /* ── MUSIC (only called on LP pages) ─────────────── */
@@ -45,17 +44,13 @@ function initMusic() {
   const audio = new Audio('https://res.cloudinary.com/ds9v1rpfi/video/upload/v1777808988/love_zmgfmy.mp3');
   audio.loop   = true;
   audio.volume = 0.6;
-
   let started = false;
 
   function tryPlay() {
     if (started) return;
     audio.play().then(() => { started = true; }).catch(() => {});
   }
-
-  tryPlay(); // attempt autoplay
-
-  // fallback on first interaction
+  tryPlay();
   const events = ['click', 'touchstart', 'keydown'];
   function onInteract() {
     tryPlay();
@@ -64,13 +59,16 @@ function initMusic() {
   events.forEach(ev => document.addEventListener(ev, onInteract, { passive: true }));
 }
 
-/* ── LOAD LP DATA ─────────────────────────────────── */
+/* ── LOAD LP DATA — WITH CACHE BUSTING ───────────── */
 async function loadLP(id) {
   try {
+    // Add timestamp to prevent caching [^2^]
     const url = new URL(LP_CONFIG.API_URL);
     url.searchParams.set('action', 'getLP');
     url.searchParams.set('id', id);
-    const res  = await fetch(url.toString());
+    url.searchParams.set('_t', Date.now()); // CACHE BUST
+
+    const res  = await fetch(url.toString(), { cache: 'no-store' });
     const data = await res.json();
     if (data.error || !data.data) { showError(); return; }
     initLP(data.data);
@@ -251,7 +249,7 @@ function buildSpreads() {
   const s = [];
   for (let i = 0; i < BOOK_IMAGES.length; i += 2)
     s.push([BOOK_IMAGES[i] || null, BOOK_IMAGES[i+1] || null]);
-  s.push([null, null]); // last page
+  s.push([null, null]);
   return s;
 }
 
@@ -503,12 +501,11 @@ function closeHeartFormation() {
   }, 500);
 }
 
-/* ── REQUEST FORM SUBMIT (no images) ─────────────── */
+/* ── REQUEST FORM SUBMIT (NO message field, NO images) ─ */
 async function submitRequest() {
   const name     = document.getElementById('req-name').value.trim();
   const whatsapp = document.getElementById('req-whatsapp').value.trim();
   const email    = document.getElementById('req-email').value.trim();
-  const msg      = document.getElementById('req-message').value.trim();
 
   if (!name)     { alert('Please enter your name');            return; }
   if (!whatsapp) { alert('Please enter your WhatsApp number'); return; }
@@ -525,9 +522,8 @@ async function submitRequest() {
         action:   'submitRequest',
         name,
         whatsapp,
-        email:   email || '',
-        message: msg   || '',
-        images:  []    // no images from request form
+        email:   email || ''
+        // NO message field, NO images
       })
     });
 
@@ -539,7 +535,7 @@ async function submitRequest() {
     btn.textContent = 'Sent! 💖';
 
     setTimeout(() => {
-      ['req-name','req-whatsapp','req-email','req-message'].forEach(id => {
+      ['req-name','req-whatsapp','req-email'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
