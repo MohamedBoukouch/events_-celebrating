@@ -16,7 +16,7 @@ const MUSIC = {
 
   init() {
     // Use absolute path - adjust if your file structure differs
-    this.audio = new Audio('./audio/love.mp3');
+    this.audio = new Audio('https://res.cloudinary.com/ds9v1rpfi/video/upload/v1777808988/love_zmgfmy.mp3');
     this.audio.loop = true;
     this.audio.volume = 0.6;
 
