@@ -489,64 +489,20 @@ function validatePhone(phone) {
   return /^(06|07)\d{8}$/.test(cleaned);
 }
 
-async function submitRequest() {
-  const name = document.getElementById('req-name').value.trim();
-  const phone = document.getElementById('req-whatsapp').value.trim();
-  const email = document.getElementById('req-email').value.trim();
-  const msg = document.getElementById('req-message').value.trim();
-
-  if (!name) { showReqError('Please enter your name'); return; }
-  if (!phone) { showReqError('Please enter your WhatsApp number'); return; }
-  if (!validatePhone(phone)) {
-    showReqError('Please enter a valid number (e.g. 0682950546 — starts with 06 or 07, 10 digits)');
-    return;
-  }
-
-  const btn = document.getElementById('req-submit-btn');
-  const resultEl = document.getElementById('req-result');
-  btn.disabled = true;
-  btn.textContent = reqImages.length > 0 ? 'Sending with photos... 📸' : 'Sending... 💌';
-  resultEl.innerHTML = '';
-
-  try {
-    /* Send request WITH base64 images directly — no upload step needed */
-    const res = await fetch(LP_CONFIG.API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'submitRequest',
-        name,
-        whatsapp: phone,
-        email: email || '',
-        message: msg || '',
-        images: reqImages  // ← send base64 objects directly: { base64, mime, name }
-      })
-    });
-
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-
-    resultEl.innerHTML = '<span style="color:#4ade80">✅ Request sent! We\'ll create your LP and send the link to your WhatsApp soon 💖</span>';
-    btn.textContent = 'Sent! 💖';
-
-    setTimeout(() => {
-      document.getElementById('req-name').value = '';
-      document.getElementById('req-whatsapp').value = '';
-      document.getElementById('req-email').value = '';
-      document.getElementById('req-message').value = '';
-      reqImages = [];
-      renderReqPreviews();
-      btn.disabled = false;
-      btn.textContent = 'Send Request 💌';
-      resultEl.innerHTML = '';
-    }, 4000);
-
-  } catch (err) {
-    console.error('Submit error:', err);
-    resultEl.innerHTML = '<span style="color:#f87171">❌ Error: ' + err.message + '</span>';
-    btn.disabled = false;
-    btn.textContent = 'Send Request 💌';
-  }
+async function uploadOneImage(imgObj) {
+  const res = await fetch(LP_CONFIG.API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'uploadImage',    // or 'uploadRequestImage' if you made a public endpoint
+      data: imgObj.base64,
+      mimeType: imgObj.mime,
+      filename: imgObj.name
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.url;
 }
 
 function showReqError(msg) {
