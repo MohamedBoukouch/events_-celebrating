@@ -1,5 +1,5 @@
 /* =====================================================
-   LP ADMIN DASHBOARD — JavaScript (FULLY FIXED)
+   LP ADMIN DASHBOARD — JavaScript (FULLY FIXED v2)
    ===================================================== */
 
 const CONFIG = {
@@ -33,7 +33,7 @@ function doLogin() {
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('dashboard').classList.remove('hidden');
       loadClientsData(data.data || []);
-      loadRequestsData();
+      loadRequestsData([]);
     })
     .catch(() => {
       showErr('Connection error');
@@ -300,19 +300,7 @@ async function refreshRequests() {
   }
 }
 
-async function loadRequestsData(rows) {
-  // If called without args (initial load), fetch from API
-  if (!rows) {
-    try {
-      const data = await apiGet({ action: 'getAllRequests', pass: adminPass });
-      rows = data.data || [];
-    } catch (err) {
-      document.getElementById('requests-tbody').innerHTML =
-        `<tr><td colspan="7" class="loading-row">Error loading requests</td></tr>`;
-      return;
-    }
-  }
-
+function loadRequestsData(rows) {
   rows = [...rows].sort((a, b) => new Date(b.requested_at || 0) - new Date(a.requested_at || 0));
 
   const pending = rows.filter(r => r.status === 'pending').length;
@@ -325,16 +313,17 @@ async function loadRequestsData(rows) {
   }
 
   tbody.innerHTML = rows.map(r => {
-    // ✅ FIX: parse images properly — requests store images as comma-separated URLs or JSON
-    const imgs = parseImagesClient(r.images);
+    // ✅ FIX: GAS now returns images as array; still handle string fallback
+    const imgs = Array.isArray(r.images) ? r.images.filter(Boolean) : parseImagesClient(r.images);
     const idSafe = esc(r.id || '');
     const nameSafe = esc(r.name || '');
     const waSafe = esc(r.whatsapp || '');
     const lpIdSafe = esc(r.lp_id || '');
     const status = r.status || 'pending';
 
+    // ✅ FIX: WhatsApp number display + direct chat link
     const waDisplay = r.whatsapp
-      ? `<a href="https://wa.me/212${r.whatsapp.replace(/^0/, '')}" target="_blank" style="color:var(--success);text-decoration:none">📱 ${esc(r.whatsapp)}</a>`
+      ? `<a href="${buildWALink(r.whatsapp)}" target="_blank" style="color:var(--success);text-decoration:none">📱 ${esc(r.whatsapp)}</a>`
       : '—';
     const emailDisplay = r.email
       ? `<br><span style="font-size:.78rem;color:var(--text-dim)">${esc(r.email)}</span>`
@@ -343,7 +332,6 @@ async function loadRequestsData(rows) {
     const msgText = r.message || '';
     const msgDisplay = esc(msgText.substring(0, 80)) + (msgText.length > 80 ? '…' : '');
 
-    // ✅ FIX: images thumbnail row — same logic as clients table
     const imgHtml = imgs.length > 0
       ? imgs.slice(0, 3).map(u =>
           `<img class="table-thumb" src="${u}"
@@ -352,7 +340,6 @@ async function loadRequestsData(rows) {
         ).join('') + (imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length - 3}</span>` : '')
       : '<span style="font-size:.8rem;color:var(--text-dim)">No images</span>';
 
-    // ✅ FIX: action buttons — use data attributes instead of inline JS with special chars
     let actionBtns = '';
     if (status === 'pending') {
       actionBtns = `
@@ -377,7 +364,20 @@ async function loadRequestsData(rows) {
   }).join('');
 }
 
-// ✅ FIX: data-attribute–based handlers (avoids escaping bugs in inline onclick)
+// ✅ FIX: Build direct WhatsApp chat link — strips leading 0, adds +212
+function buildWALink(phone, message) {
+  if (!phone) return 'https://wa.me/';
+  // Remove spaces, dashes, dots
+  let clean = String(phone).replace(/[\s\-\.]/g, '');
+  // If starts with 0, replace with 212 (Morocco)
+  if (clean.startsWith('0')) clean = '212' + clean.substring(1);
+  // If already has + prefix, strip it
+  if (clean.startsWith('+')) clean = clean.substring(1);
+  const url = 'https://wa.me/' + clean;
+  return message ? url + '?text=' + encodeURIComponent(message) : url;
+}
+
+// data-attribute–based handlers
 function handleApprove(btn) {
   const id = btn.dataset.approveId;
   const wa = btn.dataset.approveWa;
@@ -462,20 +462,11 @@ function openShareModal(lpId, whatsapp, name) {
     }
   }, 400);
 
-  // WhatsApp button
-  const cleanPhone = whatsapp ? '212' + whatsapp.replace(/^0/, '') : '';
-  const waMsg = encodeURIComponent(
-    `🎂 Joyeux anniversaire ${name}! 💖\n\nTon LP est prêt ici :\n${url}\n\nProfite bien de ta journée spéciale! 🎉`
-  );
+  // ✅ FIX: WhatsApp button opens DIRECT chat to user's phone number
+  const waMsg = `🎂 Joyeux anniversaire ${name}! 💖\n\nTon LP est prêt ici :\n${url}\n\nProfite bien de ta journée spéciale! 🎉`;
   const waBtn = document.getElementById('share-modal-wa-btn');
-  if (cleanPhone) {
-    waBtn.style.display = '';
-    waBtn.onclick = () => window.open(`https://wa.me/${cleanPhone}?text=${waMsg}`, '_blank');
-  } else {
-    // No phone number — open generic WA share
-    waBtn.style.display = '';
-    waBtn.onclick = () => window.open(`https://wa.me/?text=${waMsg}`, '_blank');
-  }
+  waBtn.style.display = '';
+  waBtn.onclick = () => window.open(buildWALink(whatsapp, waMsg), '_blank');
 
   document.getElementById('share-modal').style.display = 'flex';
 }
@@ -575,13 +566,16 @@ function esc(str) {
     .replace(/'/g, '&#39;');
 }
 
+// ✅ FIX: formatDate — handles ISO strings, Date objects, and bad values gracefully
 function formatDate(str) {
   if (!str) return '—';
   try {
-    return new Date(str).toLocaleDateString('fr-MA', {
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return String(str);
+    return d.toLocaleDateString('fr-MA', {
       day: '2-digit', month: 'short', year: 'numeric'
     });
-  } catch { return str; }
+  } catch { return String(str); }
 }
 
 let toastTimer;
