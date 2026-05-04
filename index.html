@@ -238,17 +238,24 @@
   </div>
 </div>
 
-<!-- SEND WHATSAPP MODAL -->
-<div class="modal-overlay" id="send-wa-modal" style="display:none" onclick="closeModal(event)">
+<!-- ✅ SHARE MODAL (was missing — used after approving a request) -->
+<div class="modal-overlay" id="share-modal" style="display:none" onclick="closeModal(event)">
   <div class="modal-card modal-sm">
     <div class="modal-header">
-      <h3>Send LP via WhatsApp</h3>
-      <button class="modal-close" onclick="document.getElementById('send-wa-modal').style.display='none'">✕</button>
+      <h3 id="share-modal-name">Send LP</h3>
+      <button class="modal-close" onclick="document.getElementById('share-modal').style.display='none'">✕</button>
     </div>
     <div class="modal-body" style="text-align:center">
-      <p style="margin-bottom:1rem;color:var(--text-dim)">Send this LP link to the user</p>
-      <input type="text" id="send-wa-link" readonly class="copy-input" style="margin-bottom:.8rem"/>
-      <button class="share-btn whatsapp" id="send-wa-action-btn" style="width:100%">📱 Open WhatsApp</button>
+      <div id="share-modal-qr" style="margin-bottom:1rem;display:flex;justify-content:center"></div>
+      <input type="text" id="share-modal-link" readonly class="copy-input" style="margin-bottom:.8rem"/>
+      <div class="share-btns" style="justify-content:center">
+        <button class="share-btn whatsapp" id="share-modal-wa-btn">📱 Send via WhatsApp</button>
+        <button class="share-btn copy2" onclick="copyText('share-modal-link')">Copy Link</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="share-modal-dl-btn">⬇ Download QR</button>
+      <button class="btn-secondary" onclick="document.getElementById('share-modal').style.display='none'">Close</button>
     </div>
   </div>
 </div>
