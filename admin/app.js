@@ -1,6 +1,6 @@
 /* =====================================================
-   LP ADMIN DASHBOARD — JavaScript (FULLY FIXED v4)
-   Fixes: Message display, Date parsing, URL construction, No email
+   LP ADMIN DASHBOARD — JavaScript (FULLY FIXED v3)
+   Fixes: Request message display, Date parsing, Clients table
    ===================================================== */
 
 const CONFIG = {
@@ -254,12 +254,13 @@ function loadClientsData(rows) {
     const imgs = parseImages(r.images);
     const idSafe = esc(r.id || '');
     const nameSafe = esc(r.name || '');
-    const msgText = getMessageText(r);
+    const msgSafe = esc(getMessageText(r));
     const status = r.status || 'active';
     const dateStr = formatDate(r.created_at);
 
-    const msgDisplay = msgText
-      ? (msgText.length > 60 ? esc(msgText.substring(0, 60)) + '…' : esc(msgText))
+    // Truncate message for display
+    const msgDisplay = msgSafe
+      ? (msgSafe.length > 60 ? esc(msgSafe.substring(0, 60)) + '…' : esc(msgSafe))
       : '<span style="color:var(--text-dim)">—</span>';
 
     return `
@@ -277,7 +278,7 @@ function loadClientsData(rows) {
       <td>
         <div class="action-btns">
           <button class="action-btn" onclick="viewQR('${idSafe}','${nameSafe}')">🔗 QR</button>
-          <button class="action-btn" onclick="openEdit('${idSafe}','${nameSafe}','${esc(msgText)}','${status}')">✏️ Edit</button>
+          <button class="action-btn" onclick="openEdit('${idSafe}','${nameSafe}','${esc(msgSafe)}','${status}')">✏️ Edit</button>
           <button class="action-btn danger" onclick="deleteLP('${idSafe}')">🗑 Delete</button>
         </div>
       </td>
@@ -300,8 +301,8 @@ async function refreshRequests() {
 
 function loadRequestsData(rows) {
   rows = [...rows].sort((a, b) => {
-    const da = safeDate(a.requested_at || a.created_at || a.date || a.timestamp);
-    const db = safeDate(b.requested_at || b.created_at || b.date || b.timestamp);
+    const da = safeDate(a.requested_at || a.created_at || a.date);
+    const db = safeDate(b.requested_at || b.created_at || b.date);
     return db - da;
   });
 
@@ -327,7 +328,7 @@ function loadRequestsData(rows) {
       ? `<a href="${buildWALink(r.whatsapp)}" target="_blank" style="color:var(--success);text-decoration:none;white-space:nowrap">📱 ${esc(r.whatsapp)}</a>`
       : '—';
 
-    // Extract message from ALL possible field names
+    // ✅ FIX: Extract message from ALL possible field names
     const msgText = getMessageText(r);
     const msgDisplay = msgText
       ? (msgText.length > 80 ? esc(msgText.substring(0, 80)) + '…' : esc(msgText))
@@ -342,7 +343,7 @@ function loadRequestsData(rows) {
         ).join('') + (imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length - 3}</span>` : '')
       : '<span style="font-size:.8rem;color:var(--text-dim)">No images</span>';
 
-    // Date — try multiple possible field names
+    // ✅ FIX: Date — try multiple possible field names
     const dateVal = r.requested_at || r.created_at || r.date || r.timestamp || r.submitted_at;
     const dateStr = formatDate(dateVal);
 
@@ -370,10 +371,11 @@ function loadRequestsData(rows) {
   }).join('');
 }
 
-// ── HELPERS ────────────────────────────────────────────────
+// ── HELPERS: Message & Images Parsing ──────────────────────
 
 /**
- * Extract message text from ALL possible field names
+ * ✅ FIX: Extract message text from ALL possible field names
+ * GAS might return: message, custom_message, msg, notes, description, request_message
  */
 function getMessageText(row) {
   if (!row) return '';
@@ -499,12 +501,7 @@ function openShareModal(lpId, whatsapp, name) {
     }
   }, 400);
 
-  const waMsg = `🎂 Joyeux anniversaire ${name}! 💖
-
-Ton LP est prêt ici :
-${url}
-
-Profite bien de ta journée spéciale! 🎉`;
+  const waMsg = `🎂 Joyeux anniversaire ${name}! 💖\n\nTon LP est prêt ici :\n${url}\n\nProfite bien de ta journée spéciale! 🎉`;
   const waBtn = document.getElementById('share-modal-wa-btn');
   waBtn.style.display = '';
   waBtn.onclick = () => window.open(buildWALink(whatsapp, waMsg), '_blank');
@@ -608,34 +605,34 @@ function esc(str) {
 }
 
 /**
- * Safe date parsing — handles ISO strings, timestamps, Google Sheets dates, dd/MM/yyyy
+ * ✅ FIX: Safe date parsing — handles ISO strings, timestamps, Google Sheets dates
  */
 function safeDate(str) {
   if (!str) return new Date(0);
-  // Handle Google Sheets serial numbers
+  // Handle Google Sheets serial numbers (e.g., 45000 = ~2023)
   if (typeof str === 'number') {
+    // Excel/Google Sheets epoch: 1899-12-30
     const epoch = new Date(1899, 11, 30);
     return new Date(epoch.getTime() + str * 24 * 60 * 60 * 1000);
   }
-  // Handle string dates
-  const s = String(str).trim();
-  // Try ISO / standard date first
-  let d = new Date(s);
-  if (!isNaN(d.getTime())) return d;
-  // Try dd/MM/yyyy or dd-MM-yyyy
-  const parts = s.split(/[\/\-]/);
-  if (parts.length === 3) {
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
-    const alt = new Date(year, month, day);
-    if (!isNaN(alt.getTime())) return alt;
+  const d = new Date(str);
+  if (isNaN(d.getTime())) {
+    // Try parsing dd/MM/yyyy or dd-MM-yyyy
+    const parts = String(str).split(/[\/\-\.]/);
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      const alt = new Date(year, month, day);
+      if (!isNaN(alt.getTime())) return alt;
+    }
+    return new Date(0);
   }
-  return new Date(0);
+  return d;
 }
 
 /**
- * Format date — robust handling for all date formats
+ * ✅ FIX: formatDate — robust handling for all date formats
  */
 function formatDate(str) {
   if (!str) return '—';
