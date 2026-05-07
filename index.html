@@ -6,6 +6,7 @@
 <title>LP Admin Dashboard 💖</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="admin/style.css"/>
+<base target="_blank">
 </head>
 <body>
 
@@ -146,11 +147,12 @@
               <th>Created</th>
               <th>Status</th>
               <th>Images</th>
+              <th>Message</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="clients-tbody">
-            <tr><td colspan="5" class="loading-row">Loading...</td></tr>
+            <tr><td colspan="6" class="loading-row">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -238,7 +240,7 @@
   </div>
 </div>
 
-<!-- ✅ SHARE MODAL (was missing — used after approving a request) -->
+<!-- SHARE MODAL -->
 <div class="modal-overlay" id="share-modal" style="display:none" onclick="closeModal(event)">
   <div class="modal-card modal-sm">
     <div class="modal-header">

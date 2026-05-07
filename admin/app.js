@@ -1,5 +1,6 @@
 /* =====================================================
-   LP ADMIN DASHBOARD — JavaScript (FULLY FIXED v2)
+   LP ADMIN DASHBOARD — JavaScript (FULLY FIXED v3)
+   Fixes: Request message display, Date parsing, Clients table
    ===================================================== */
 
 const CONFIG = {
@@ -225,35 +226,47 @@ function shareWA() {
 // ── CLIENTS TABLE ──────────────────────────────────────────
 async function refreshClients() {
   document.getElementById('clients-tbody').innerHTML =
-    '<tr><td colspan="5" class="loading-row">Loading...</td></tr>';
+    '<tr><td colspan="6" class="loading-row">Loading...</td></tr>';
   try {
     const data = await apiGet({ action: 'getAllClients', pass: adminPass });
     loadClientsData(data.data || []);
   } catch (err) {
     document.getElementById('clients-tbody').innerHTML =
-      `<tr><td colspan="5" class="loading-row">Error: ${err.message}</td></tr>`;
+      `<tr><td colspan="6" class="loading-row">Error: ${err.message}</td></tr>`;
   }
 }
 
 function loadClientsData(rows) {
-  rows = [...rows].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  rows = [...rows].sort((a, b) => {
+    const da = safeDate(a.created_at);
+    const db = safeDate(b.created_at);
+    return db - da;
+  });
   document.getElementById('badge-clients').textContent = rows.length;
 
   const tbody = document.getElementById('clients-tbody');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="loading-row">No LPs yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="loading-row">No LPs yet</td></tr>';
     return;
   }
+
   tbody.innerHTML = rows.map(r => {
-    const imgs = Array.isArray(r.images) ? r.images : parseImagesClient(r.images);
+    const imgs = parseImages(r.images);
     const idSafe = esc(r.id || '');
     const nameSafe = esc(r.name || '');
-    const msgSafe = esc(r.custom_message || '');
+    const msgSafe = esc(getMessageText(r));
     const status = r.status || 'active';
+    const dateStr = formatDate(r.created_at);
+
+    // Truncate message for display
+    const msgDisplay = msgSafe
+      ? (msgSafe.length > 60 ? esc(msgSafe.substring(0, 60)) + '…' : esc(msgSafe))
+      : '<span style="color:var(--text-dim)">—</span>';
+
     return `
     <tr>
       <td><strong>${nameSafe}</strong></td>
-      <td style="color:var(--text-dim);font-size:.82rem">${formatDate(r.created_at)}</td>
+      <td style="color:var(--text-dim);font-size:.82rem;white-space:nowrap">${dateStr}</td>
       <td><span class="status-badge status-${status}">${status}</span></td>
       <td>
         <div class="table-img-row">
@@ -261,30 +274,16 @@ function loadClientsData(rows) {
           ${imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length - 3}</span>` : ''}
         </div>
       </td>
+      <td style="max-width:200px;font-size:.82rem;color:var(--text-dim)">${msgDisplay}</td>
       <td>
         <div class="action-btns">
           <button class="action-btn" onclick="viewQR('${idSafe}','${nameSafe}')">🔗 QR</button>
-          <button class="action-btn" onclick="openEdit('${idSafe}','${nameSafe}','${msgSafe}','${status}')">✏️ Edit</button>
+          <button class="action-btn" onclick="openEdit('${idSafe}','${nameSafe}','${esc(msgSafe)}','${status}')">✏️ Edit</button>
           <button class="action-btn danger" onclick="deleteLP('${idSafe}')">🗑 Delete</button>
         </div>
       </td>
     </tr>`;
   }).join('');
-}
-
-// Helper: parse images field that might be a comma-separated string or JSON
-function parseImagesClient(field) {
-  if (!field) return [];
-  if (Array.isArray(field)) return field.filter(Boolean);
-  if (typeof field === 'string') {
-    if (!field.trim()) return [];
-    try {
-      const p = JSON.parse(field);
-      if (Array.isArray(p)) return p.filter(Boolean);
-    } catch (e) {}
-    return field.split(',').map(s => s.trim()).filter(Boolean);
-  }
-  return [];
 }
 
 // ── REQUESTS TABLE ─────────────────────────────────────────
@@ -301,7 +300,11 @@ async function refreshRequests() {
 }
 
 function loadRequestsData(rows) {
-  rows = [...rows].sort((a, b) => new Date(b.requested_at || 0) - new Date(a.requested_at || 0));
+  rows = [...rows].sort((a, b) => {
+    const da = safeDate(a.requested_at || a.created_at || a.date);
+    const db = safeDate(b.requested_at || b.created_at || b.date);
+    return db - da;
+  });
 
   const pending = rows.filter(r => r.status === 'pending').length;
   document.getElementById('badge-requests').textContent = pending || '';
@@ -313,25 +316,25 @@ function loadRequestsData(rows) {
   }
 
   tbody.innerHTML = rows.map(r => {
-    // ✅ FIX: GAS now returns images as array; still handle string fallback
-    const imgs = Array.isArray(r.images) ? r.images.filter(Boolean) : parseImagesClient(r.images);
+    const imgs = parseImages(r.images);
     const idSafe = esc(r.id || '');
     const nameSafe = esc(r.name || '');
     const waSafe = esc(r.whatsapp || '');
     const lpIdSafe = esc(r.lp_id || '');
     const status = r.status || 'pending';
 
-    // ✅ FIX: WhatsApp number display + direct chat link
+    // WhatsApp display with direct link
     const waDisplay = r.whatsapp
-      ? `<a href="${buildWALink(r.whatsapp)}" target="_blank" style="color:var(--success);text-decoration:none">📱 ${esc(r.whatsapp)}</a>`
+      ? `<a href="${buildWALink(r.whatsapp)}" target="_blank" style="color:var(--success);text-decoration:none;white-space:nowrap">📱 ${esc(r.whatsapp)}</a>`
       : '—';
-    const emailDisplay = r.email
-      ? `<br><span style="font-size:.78rem;color:var(--text-dim)">${esc(r.email)}</span>`
-      : '';
 
-    const msgText = r.message || '';
-    const msgDisplay = esc(msgText.substring(0, 80)) + (msgText.length > 80 ? '…' : '');
+    // ✅ FIX: Extract message from ALL possible field names
+    const msgText = getMessageText(r);
+    const msgDisplay = msgText
+      ? (msgText.length > 80 ? esc(msgText.substring(0, 80)) + '…' : esc(msgText))
+      : '<span style="color:var(--text-dim)">No message</span>';
 
+    // Images display
     const imgHtml = imgs.length > 0
       ? imgs.slice(0, 3).map(u =>
           `<img class="table-thumb" src="${u}"
@@ -339,6 +342,10 @@ function loadRequestsData(rows) {
             alt=""/>`
         ).join('') + (imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length - 3}</span>` : '')
       : '<span style="font-size:.8rem;color:var(--text-dim)">No images</span>';
+
+    // ✅ FIX: Date — try multiple possible field names
+    const dateVal = r.requested_at || r.created_at || r.date || r.timestamp || r.submitted_at;
+    const dateStr = formatDate(dateVal);
 
     let actionBtns = '';
     if (status === 'pending') {
@@ -354,30 +361,65 @@ function loadRequestsData(rows) {
     return `
     <tr>
       <td><strong>${nameSafe}</strong></td>
-      <td>${waDisplay}${emailDisplay}</td>
+      <td>${waDisplay}</td>
       <td><div class="table-img-row">${imgHtml}</div></td>
-      <td style="max-width:180px;font-size:.85rem;color:var(--text-dim)">${msgDisplay || '—'}</td>
-      <td style="color:var(--text-dim);font-size:.82rem">${formatDate(r.requested_at)}</td>
+      <td style="max-width:180px;font-size:.85rem;color:var(--text-dim)">${msgDisplay}</td>
+      <td style="color:var(--text-dim);font-size:.82rem;white-space:nowrap">${dateStr}</td>
       <td><span class="status-badge status-${status}">${status}</span></td>
       <td><div class="action-btns">${actionBtns}</div></td>
     </tr>`;
   }).join('');
 }
 
-// ✅ FIX: Build direct WhatsApp chat link — strips leading 0, adds +212
+// ── HELPERS: Message & Images Parsing ──────────────────────
+
+/**
+ * ✅ FIX: Extract message text from ALL possible field names
+ * GAS might return: message, custom_message, msg, notes, description, request_message
+ */
+function getMessageText(row) {
+  if (!row) return '';
+  const possibleFields = [
+    'message', 'custom_message', 'msg', 'notes', 'description',
+    'request_message', 'user_message', 'text', 'comment', 'note'
+  ];
+  for (const field of possibleFields) {
+    const val = row[field];
+    if (typeof val === 'string' && val.trim()) {
+      return val.trim();
+    }
+  }
+  return '';
+}
+
+/**
+ * Parse images field — handles array, JSON string, or comma-separated string
+ */
+function parseImages(field) {
+  if (!field) return [];
+  if (Array.isArray(field)) return field.filter(Boolean);
+  if (typeof field === 'string') {
+    if (!field.trim()) return [];
+    try {
+      const p = JSON.parse(field);
+      if (Array.isArray(p)) return p.filter(Boolean);
+    } catch (e) {}
+    return field.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+// ── WHATSAPP LINK BUILDER ──────────────────────────────────
 function buildWALink(phone, message) {
   if (!phone) return 'https://wa.me/';
-  // Remove spaces, dashes, dots
   let clean = String(phone).replace(/[\s\-\.]/g, '');
-  // If starts with 0, replace with 212 (Morocco)
   if (clean.startsWith('0')) clean = '212' + clean.substring(1);
-  // If already has + prefix, strip it
   if (clean.startsWith('+')) clean = clean.substring(1);
   const url = 'https://wa.me/' + clean;
   return message ? url + '?text=' + encodeURIComponent(message) : url;
 }
 
-// data-attribute–based handlers
+// data-attribute handlers
 function handleApprove(btn) {
   const id = btn.dataset.approveId;
   const wa = btn.dataset.approveWa;
@@ -394,7 +436,7 @@ function handleSendWA(btn) {
   openShareModal(btn.dataset.shareLp, btn.dataset.shareWa, btn.dataset.shareName);
 }
 
-// ── APPROVE REQUEST ────────────────────────────────────────
+// ── APPROVE / REJECT ───────────────────────────────────────
 async function approveRequest(id, whatsapp, name) {
   if (!confirm(`Approve request for ${name} and create their LP?`)) return;
   try {
@@ -433,11 +475,9 @@ function openShareModal(lpId, whatsapp, name) {
   if (!lpId) { showToast('LP ID missing', 'error'); return; }
 
   const url = `${CONFIG.LP_BASE}?id=${lpId}`;
-
   document.getElementById('share-modal-name').textContent = `LP for ${name}`;
   document.getElementById('share-modal-link').value = url;
 
-  // Build QR
   const qrWrap = document.getElementById('share-modal-qr');
   qrWrap.innerHTML = '';
   new QRCode(qrWrap, {
@@ -446,7 +486,6 @@ function openShareModal(lpId, whatsapp, name) {
     correctLevel: QRCode.CorrectLevel.H
   });
 
-  // Download button — wait for canvas to render
   const dlBtn = document.getElementById('share-modal-dl-btn');
   dlBtn.style.display = 'none';
   setTimeout(() => {
@@ -462,7 +501,6 @@ function openShareModal(lpId, whatsapp, name) {
     }
   }, 400);
 
-  // ✅ FIX: WhatsApp button opens DIRECT chat to user's phone number
   const waMsg = `🎂 Joyeux anniversaire ${name}! 💖\n\nTon LP est prêt ici :\n${url}\n\nProfite bien de ta journée spéciale! 🎉`;
   const waBtn = document.getElementById('share-modal-wa-btn');
   waBtn.style.display = '';
@@ -566,16 +604,48 @@ function esc(str) {
     .replace(/'/g, '&#39;');
 }
 
-// ✅ FIX: formatDate — handles ISO strings, Date objects, and bad values gracefully
+/**
+ * ✅ FIX: Safe date parsing — handles ISO strings, timestamps, Google Sheets dates
+ */
+function safeDate(str) {
+  if (!str) return new Date(0);
+  // Handle Google Sheets serial numbers (e.g., 45000 = ~2023)
+  if (typeof str === 'number') {
+    // Excel/Google Sheets epoch: 1899-12-30
+    const epoch = new Date(1899, 11, 30);
+    return new Date(epoch.getTime() + str * 24 * 60 * 60 * 1000);
+  }
+  const d = new Date(str);
+  if (isNaN(d.getTime())) {
+    // Try parsing dd/MM/yyyy or dd-MM-yyyy
+    const parts = String(str).split(/[\/\-\.]/);
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      const alt = new Date(year, month, day);
+      if (!isNaN(alt.getTime())) return alt;
+    }
+    return new Date(0);
+  }
+  return d;
+}
+
+/**
+ * ✅ FIX: formatDate — robust handling for all date formats
+ */
 function formatDate(str) {
   if (!str) return '—';
+  const d = safeDate(str);
+  if (d.getTime() === 0) return String(str);
   try {
-    const d = new Date(str);
-    if (isNaN(d.getTime())) return String(str);
     return d.toLocaleDateString('fr-MA', {
-      day: '2-digit', month: 'short', year: 'numeric'
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
     });
-  } catch { return String(str); }
+  } catch {
+    return String(str);
+  }
 }
 
 let toastTimer;
