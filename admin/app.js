@@ -345,7 +345,7 @@ function loadRequestsData(rows) {
 
     // ✅ FIX: Date — try multiple possible field names
     const dateVal = r.requested_at || r.created_at || r.date || r.timestamp || r.submitted_at;
-    const dateStr = formatDate(dateVal);
+    const dateStr = "eee";
 
     let actionBtns = '';
     if (status === 'pending') {
