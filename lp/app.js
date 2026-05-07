@@ -1,5 +1,6 @@
 /* =====================================================
    BIRTHDAY LP PAGE — JavaScript (FULLY FIXED)
+   No email field version
    ===================================================== */
 
 const LP_CONFIG = {
@@ -427,7 +428,7 @@ function closeHeartFormation() {
 }
 
 /* ═══════════════════════════════════════════════════
-   REQUEST FORM — FULLY FIXED
+   REQUEST FORM — NO EMAIL FIELD
    ═══════════════════════════════════════════════════ */
 let reqImages = [];
 
@@ -469,7 +470,6 @@ function handleReqImages(e) {
     if (file.size > 5 * 1024 * 1024) { alert('Image too large (max 5MB)'); return; }
 
     try {
-      /* Compress before converting to base64 — shrinks payload by ~70% */
       const compressedFile = await compressImage(file, 1200, 0.8);
 
       const r = new FileReader();
@@ -503,7 +503,7 @@ function renderReqPreviews() {
   `).join('');
 }
 
-/* Upload a single image — handles non-JSON errors gracefully */
+/* Upload a single image */
 async function uploadOneImage(imgObj) {
   const res = await fetch(LP_CONFIG.API_URL, {
     method: 'POST',
@@ -516,7 +516,6 @@ async function uploadOneImage(imgObj) {
     })
   });
 
-  /* Handle 413 or other errors that return HTML instead of JSON */
   const contentType = res.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
     const text = await res.text();
@@ -534,11 +533,10 @@ function validatePhone(phone) {
   return /^(06|07)\d{8}$/.test(cleaned);
 }
 
-/* MAIN: Submit request — upload images one by one, then send */
+/* MAIN: Submit request */
 async function submitRequest() {
   const name = document.getElementById('req-name').value.trim();
   const phone = document.getElementById('req-whatsapp').value.trim();
-  const email = document.getElementById('req-email').value.trim();
   const msg = document.getElementById('req-message').value.trim();
 
   if (!name) { showReqError('Please enter your name'); return; }
@@ -555,7 +553,7 @@ async function submitRequest() {
   resultEl.innerHTML = '';
 
   try {
-    /* Step 1: Upload each image individually (same as admin flow) */
+    /* Step 1: Upload each image individually */
     const uploadedUrls = [];
     for (let i = 0; i < reqImages.length; i++) {
       btn.textContent = `Uploading photo ${i + 1}/${reqImages.length}... 📸`;
@@ -563,7 +561,7 @@ async function submitRequest() {
       uploadedUrls.push(url);
     }
 
-    /* Step 2: Submit request with URLs only (tiny payload, no 413) */
+    /* Step 2: Submit request with URLs only */
     btn.textContent = 'Sending request... 💌';
     const res = await fetch(LP_CONFIG.API_URL, {
       method: 'POST',
@@ -572,7 +570,6 @@ async function submitRequest() {
         action: 'submitRequest',
         name,
         whatsapp: phone,
-        email: email || '',
         message: msg || '',
         images: uploadedUrls
       })
@@ -594,7 +591,6 @@ async function submitRequest() {
     setTimeout(() => {
       document.getElementById('req-name').value = '';
       document.getElementById('req-whatsapp').value = '';
-      document.getElementById('req-email').value = '';
       document.getElementById('req-message').value = '';
       reqImages = [];
       renderReqPreviews();
