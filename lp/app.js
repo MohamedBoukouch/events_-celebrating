@@ -538,7 +538,7 @@ function validatePhone(phone) {
 async function submitRequest() {
   const name = document.getElementById('req-name').value.trim();
   const phone = document.getElementById('req-whatsapp').value.trim();
-  const email = document.getElementById('req-email').value.trim();
+  // const email = document.getElementById('req-email').value.trim();
   const msg = document.getElementById('req-message').value.trim();
 
   if (!name) { showReqError('Please enter your name'); return; }
@@ -572,7 +572,7 @@ async function submitRequest() {
         action: 'submitRequest',
         name,
         whatsapp: phone,
-        email: email || '',
+        // email: email || '',
         message: msg || '',
         images: uploadedUrls
       })
@@ -594,7 +594,7 @@ async function submitRequest() {
     setTimeout(() => {
       document.getElementById('req-name').value = '';
       document.getElementById('req-whatsapp').value = '';
-      document.getElementById('req-email').value = '';
+      // document.getElementById('req-email').value = '';
       document.getElementById('req-message').value = '';
       reqImages = [];
       renderReqPreviews();
