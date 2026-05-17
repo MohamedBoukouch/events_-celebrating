@@ -265,7 +265,9 @@ function loadClientsData(rows) {
   }).join('');
 }
 
-// ── REQUESTS TABLE ─────────────────────────────────────────
+/* ── REQUESTS TABLE ─────────────────────────────────────────
+   FIXED: Ensure images display correctly from parsed array
+   ───────────────────────────────────────────────────────── */
 async function refreshRequests() {
   document.getElementById('requests-tbody').innerHTML =
     '<tr><td colspan="7" class="loading-row">Loading...</td></tr>';
@@ -276,6 +278,84 @@ async function refreshRequests() {
     document.getElementById('requests-tbody').innerHTML =
       `<tr><td colspan="7" class="loading-row">Error: ${err.message}</td></tr>`;
   }
+}
+
+function loadRequestsData(rows) {
+  rows = [...rows].sort((a, b) => {
+    const da = safeDate(a.requested_at || a.created_at || a.date);
+    const db = safeDate(b.requested_at || b.created_at || b.date);
+    return db - da;
+  });
+
+  const pending = rows.filter(r => r.status === 'pending').length;
+  document.getElementById('badge-requests').textContent = pending || '';
+
+  const tbody = document.getElementById('requests-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="loading-row">No requests yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    // FIXED: images already parsed as array by GAS, but handle all cases
+    const imgs = Array.isArray(r.images) ? r.images.filter(Boolean) : parseImages(r.images);
+    
+    const idSafe   = esc(r.id       || '');
+    const nameSafe = esc(r.name     || '');
+    const waSafe   = esc(r.whatsapp || '');
+    const lpIdSafe = esc(r.lp_id   || '');
+    const status   = r.status || 'pending';
+
+    const waDisplay = r.whatsapp
+      ? `<a href="${buildWALink(r.whatsapp)}" target="_blank" style="color:var(--success);text-decoration:none;white-space:nowrap">📱 ${esc(r.whatsapp)}</a>`
+      : '—';
+
+    const msgText    = getMessageText(r);
+    const msgDisplay = msgText
+      ? (msgText.length > 80 ? esc(msgText.substring(0, 80)) + '…' : esc(msgText))
+      : '<span style="color:var(--text-dim)">No message</span>';
+
+    // FIXED: Better image display with fallback
+    const imgHtml = imgs.length > 0
+      ? imgs.slice(0,3).map(u =>
+          `<img class="table-thumb" src="${esc(u)}"
+            onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22><rect width=%2240%22 height=%2240%22 fill=%22%23ff2d78%22/><text x=%2220%22 y=%2225%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22white%22>📷</text></svg>'"
+            alt=""/>`
+        ).join('') + (imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length-3}</span>` : '')
+      : '<span style="font-size:.8rem;color:var(--text-dim)">No images</span>';
+
+    const dateStr = formatDate(r.requested_at || r.created_at || r.date || '');
+
+    let actionBtns = '';
+    if (status === 'pending') {
+      actionBtns = `
+        <button class="action-btn success"
+          data-approve-id="${idSafe}" data-approve-wa="${waSafe}" data-approve-name="${nameSafe}"
+          onclick="handleApprove(this)">✅ Approve</button>
+        <button class="action-btn danger"
+          data-reject-id="${idSafe}"
+          onclick="handleReject(this)">✕ Reject</button>`;
+    } else if (status === 'approved') {
+      actionBtns = `
+        <button class="action-btn"
+          data-qr-id="${lpIdSafe}" data-qr-name="${nameSafe}"
+          onclick="handleViewQR(this)">🔗 QR</button>
+        <button class="action-btn whatsapp-btn"
+          data-share-lp="${lpIdSafe}" data-share-wa="${waSafe}" data-share-name="${nameSafe}"
+          onclick="handleSendWA(this)">📱 Send WA</button>`;
+    }
+
+    return `
+    <tr>
+      <td><strong>${nameSafe}</strong></td>
+      <td>${waDisplay}</td>
+      <td><div class="table-img-row">${imgHtml}</div></td>
+      <td style="max-width:180px;font-size:.85rem;color:var(--text-dim)">${msgDisplay}</td>
+      <td style="color:var(--text-dim);font-size:.82rem;white-space:nowrap">${dateStr}</td>
+      <td><span class="status-badge status-${status}">${status}</span></td>
+      <td><div class="action-btns">${actionBtns}</div></td>
+    </tr>`;
+  }).join('');
 }
 
 function loadRequestsData(rows) {
