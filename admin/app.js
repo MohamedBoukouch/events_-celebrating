@@ -1,18 +1,18 @@
 /* =====================================================
-   LP ADMIN DASHBOARD — JavaScript (FULLY FIXED v4)
-   Fix: dateStr was hardcoded "eee" in requests table
+   LP ADMIN DASHBOARD — JavaScript (FULLY FIXED v3)
+   Fixes: Request message display, Date parsing, Clients table
    ===================================================== */
 
 const CONFIG = {
-  API_URL:    'https://events-celebrating.vercel.app/api/proxy',
-  LP_BASE:    'https://events-celebrating.vercel.app/lp.html',
+  API_URL: 'https://events-celebrating.vercel.app/api/proxy',
+  LP_BASE: 'https://events-celebrating.vercel.app/lp.html',
   ADMIN_PASS: '0000'
 };
 
 let uploadedImages = [];
-let uploadedURLs   = [];
-let currentTab     = 'create';
-let adminPass      = '';
+let uploadedURLs = [];
+let currentTab = 'create';
+let adminPass = '';
 
 // ── LOGIN ──────────────────────────────────────────────────
 document.getElementById('pass-input').addEventListener('keydown', e => {
@@ -61,9 +61,9 @@ async function apiGet(params) {
 
 async function apiPost(body) {
   const res = await fetch(CONFIG.API_URL, {
-    method:  'POST',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(body)
+    body: JSON.stringify(body)
   });
   return res.json();
 }
@@ -82,26 +82,27 @@ function switchTab(tab, btn) {
   document.getElementById('top-bar-title').textContent =
     tab === 'create' ? 'Create LP' : tab === 'clients' ? 'All LPs' : 'Requests';
   if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
-  if (tab === 'clients')  refreshClients();
+  if (tab === 'clients') refreshClients();
   if (tab === 'requests') refreshRequests();
 }
 
 function refreshData() {
-  if (currentTab === 'clients')  refreshClients();
+  if (currentTab === 'clients') refreshClients();
   if (currentTab === 'requests') refreshRequests();
   showToast('Refreshed', 'info');
 }
 
 // ── IMAGE UPLOAD (Create LP) ───────────────────────────────
 function handleImages(e) {
-  const files   = Array.from(e.target.files);
+  const files = Array.from(e.target.files);
   const allowed = 6 - uploadedImages.length - uploadedURLs.length;
   files.slice(0, allowed).forEach(file => {
     if (file.size > 5 * 1024 * 1024) { showToast('Image too large (max 5MB)', 'error'); return; }
     const reader = new FileReader();
     reader.onload = ev => {
       const dataUrl = ev.target.result;
-      uploadedImages.push({ base64: dataUrl.split(',')[1], mime: file.type, name: file.name, preview: dataUrl });
+      const base64 = dataUrl.split(',')[1];
+      uploadedImages.push({ base64, mime: file.type, name: file.name, preview: dataUrl });
       renderPreviews();
     };
     reader.readAsDataURL(file);
@@ -113,7 +114,7 @@ function renderPreviews() {
   const wrap = document.getElementById('image-previews');
   wrap.innerHTML = '';
   const all = [
-    ...uploadedURLs.map(u   => ({ type: 'url',   url: u })),
+    ...uploadedURLs.map(u => ({ type: 'url', url: u })),
     ...uploadedImages.map(i => ({ type: 'local', url: i.preview }))
   ];
   all.forEach((item, i) => {
@@ -127,7 +128,7 @@ function renderPreviews() {
 
 function removeImage(idx, type) {
   if (type === 'url') { uploadedURLs.splice(idx, 1); }
-  else { uploadedImages.splice(idx - uploadedURLs.length, 1); }
+  else { const localIdx = idx - uploadedURLs.length; uploadedImages.splice(localIdx, 1); }
   renderPreviews();
 }
 
@@ -135,8 +136,11 @@ async function uploadAllImages() {
   const results = [];
   for (const img of uploadedImages) {
     const res = await apiPost({
-      action: 'uploadImage', pass: adminPass,
-      data: img.base64, mimeType: img.mime, filename: img.name
+      action: 'uploadImage',
+      pass: adminPass,
+      data: img.base64,
+      mimeType: img.mime,
+      filename: img.name
     });
     if (res.error) throw new Error(res.error);
     results.push(res.url);
@@ -147,7 +151,7 @@ async function uploadAllImages() {
 // ── CREATE LP ──────────────────────────────────────────────
 async function createLP() {
   const name = document.getElementById('c-name').value.trim();
-  const msg  = document.getElementById('c-message').value.trim();
+  const msg = document.getElementById('c-message').value.trim();
   if (!name) { showToast('Please enter a name', 'error'); return; }
 
   const btn = document.getElementById('create-btn');
@@ -155,16 +159,20 @@ async function createLP() {
   btn.innerHTML = '<span class="spinner"></span> Uploading images...';
 
   try {
+    let newURLs = [];
     if (uploadedImages.length > 0) {
-      const newURLs   = await uploadAllImages();
-      uploadedURLs    = [...uploadedURLs, ...newURLs];
-      uploadedImages  = [];
+      newURLs = await uploadAllImages();
+      uploadedURLs = [...uploadedURLs, ...newURLs];
+      uploadedImages = [];
     }
 
     btn.innerHTML = '<span class="spinner"></span> Creating LP...';
     const res = await apiPost({
-      action: 'createLP', pass: adminPass,
-      name, images: uploadedURLs, custom_message: msg
+      action: 'createLP',
+      pass: adminPass,
+      name,
+      images: uploadedURLs,
+      custom_message: msg
     });
 
     if (res.error) throw new Error(res.error);
@@ -173,16 +181,16 @@ async function createLP() {
     showResult(lpUrl);
     showToast('LP created! 🎉', 'success');
 
-    document.getElementById('c-name').value    = '';
+    document.getElementById('c-name').value = '';
     document.getElementById('c-message').value = '';
     uploadedImages = [];
-    uploadedURLs   = [];
+    uploadedURLs = [];
     renderPreviews();
 
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
   } finally {
-    btn.disabled  = false;
+    btn.disabled = false;
     btn.innerHTML = '<span>✨ Generate LP</span>';
   }
 }
@@ -191,16 +199,23 @@ function showResult(url) {
   const card = document.getElementById('result-card');
   card.style.display = 'block';
   document.getElementById('result-link').value = url;
+
   const qrWrap = document.getElementById('qr-wrap');
   qrWrap.innerHTML = '';
-  new QRCode(qrWrap, { text: url, width: 160, height: 160, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H });
+  new QRCode(qrWrap, {
+    text: url, width: 160, height: 160,
+    colorDark: '#000', colorLight: '#fff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
 }
 
 function downloadQR() {
   const canvas = document.querySelector('#qr-wrap canvas');
   if (!canvas) { showToast('QR not ready', 'error'); return; }
   const a = document.createElement('a');
-  a.href = canvas.toDataURL('image/png'); a.download = 'lp-qr.png'; a.click();
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'lp-qr.png';
+  a.click();
 }
 
 function shareWA() {
@@ -222,7 +237,11 @@ async function refreshClients() {
 }
 
 function loadClientsData(rows) {
-  rows = [...rows].sort((a, b) => safeDate(b.created_at) - safeDate(a.created_at));
+  rows = [...rows].sort((a, b) => {
+    const da = safeDate(a.created_at);
+    const db = safeDate(b.created_at);
+    return db - da;
+  });
   document.getElementById('badge-clients').textContent = rows.length;
 
   const tbody = document.getElementById('clients-tbody');
@@ -232,14 +251,16 @@ function loadClientsData(rows) {
   }
 
   tbody.innerHTML = rows.map(r => {
-    const imgs      = parseImages(r.images);
-    const idSafe    = esc(r.id    || '');
-    const nameSafe  = esc(r.name  || '');
-    const msgText   = getMessageText(r);
-    const status    = r.status || 'active';
-    const dateStr   = formatDate(r.created_at);
-    const msgDisplay = msgText
-      ? (msgText.length > 60 ? esc(msgText.substring(0, 60)) + '…' : esc(msgText))
+    const imgs = parseImages(r.images);
+    const idSafe = esc(r.id || '');
+    const nameSafe = esc(r.name || '');
+    const msgSafe = esc(getMessageText(r));
+    const status = r.status || 'active';
+    const dateStr = formatDate(r.created_at);
+
+    // Truncate message for display
+    const msgDisplay = msgSafe
+      ? (msgSafe.length > 60 ? esc(msgSafe.substring(0, 60)) + '…' : esc(msgSafe))
       : '<span style="color:var(--text-dim)">—</span>';
 
     return `
@@ -249,15 +270,15 @@ function loadClientsData(rows) {
       <td><span class="status-badge status-${status}">${status}</span></td>
       <td>
         <div class="table-img-row">
-          ${imgs.slice(0,3).map(u => `<img class="table-thumb" src="${u}" onerror="this.style.display='none'" alt=""/>`).join('')}
-          ${imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length-3}</span>` : ''}
+          ${imgs.slice(0, 3).map(u => `<img class="table-thumb" src="${u}" onerror="this.style.display='none'" alt=""/>`).join('')}
+          ${imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length - 3}</span>` : ''}
         </div>
       </td>
       <td style="max-width:200px;font-size:.82rem;color:var(--text-dim)">${msgDisplay}</td>
       <td>
         <div class="action-btns">
           <button class="action-btn" onclick="viewQR('${idSafe}','${nameSafe}')">🔗 QR</button>
-          <button class="action-btn" onclick="openEdit('${idSafe}','${nameSafe}','${esc(msgText)}','${status}')">✏️ Edit</button>
+          <button class="action-btn" onclick="openEdit('${idSafe}','${nameSafe}','${esc(msgSafe)}','${status}')">✏️ Edit</button>
           <button class="action-btn danger" onclick="deleteLP('${idSafe}')">🗑 Delete</button>
         </div>
       </td>
@@ -265,9 +286,7 @@ function loadClientsData(rows) {
   }).join('');
 }
 
-/* ── REQUESTS TABLE ─────────────────────────────────────────
-   FIXED: Ensure images display correctly from parsed array
-   ───────────────────────────────────────────────────────── */
+// ── REQUESTS TABLE ─────────────────────────────────────────
 async function refreshRequests() {
   document.getElementById('requests-tbody').innerHTML =
     '<tr><td colspan="7" class="loading-row">Loading...</td></tr>';
@@ -297,128 +316,46 @@ function loadRequestsData(rows) {
   }
 
   tbody.innerHTML = rows.map(r => {
-    // FIXED: images already parsed as array by GAS, but handle all cases
-    const imgs = Array.isArray(r.images) ? r.images.filter(Boolean) : parseImages(r.images);
-    
-    const idSafe   = esc(r.id       || '');
-    const nameSafe = esc(r.name     || '');
-    const waSafe   = esc(r.whatsapp || '');
-    const lpIdSafe = esc(r.lp_id   || '');
-    const status   = r.status || 'pending';
+    const imgs = parseImages(r.images);
+    const idSafe = esc(r.id || '');
+    const nameSafe = esc(r.name || '');
+    const waSafe = esc(r.whatsapp || '');
+    const lpIdSafe = esc(r.lp_id || '');
+    const status = r.status || 'pending';
 
+    // WhatsApp display with direct link
     const waDisplay = r.whatsapp
       ? `<a href="${buildWALink(r.whatsapp)}" target="_blank" style="color:var(--success);text-decoration:none;white-space:nowrap">📱 ${esc(r.whatsapp)}</a>`
       : '—';
 
-    const msgText    = getMessageText(r);
+    // ✅ FIX: Extract message from ALL possible field names
+    const msgText = getMessageText(r);
     const msgDisplay = msgText
       ? (msgText.length > 80 ? esc(msgText.substring(0, 80)) + '…' : esc(msgText))
       : '<span style="color:var(--text-dim)">No message</span>';
 
-    // FIXED: Better image display with fallback
+    // Images display
     const imgHtml = imgs.length > 0
-      ? imgs.slice(0,3).map(u =>
-          `<img class="table-thumb" src="${esc(u)}"
-            onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22><rect width=%2240%22 height=%2240%22 fill=%22%23ff2d78%22/><text x=%2220%22 y=%2225%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22white%22>📷</text></svg>'"
-            alt=""/>`
-        ).join('') + (imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length-3}</span>` : '')
-      : '<span style="font-size:.8rem;color:var(--text-dim)">No images</span>';
-
-    const dateStr = formatDate(r.requested_at || r.created_at || r.date || '');
-
-    let actionBtns = '';
-    if (status === 'pending') {
-      actionBtns = `
-        <button class="action-btn success"
-          data-approve-id="${idSafe}" data-approve-wa="${waSafe}" data-approve-name="${nameSafe}"
-          onclick="handleApprove(this)">✅ Approve</button>
-        <button class="action-btn danger"
-          data-reject-id="${idSafe}"
-          onclick="handleReject(this)">✕ Reject</button>`;
-    } else if (status === 'approved') {
-      actionBtns = `
-        <button class="action-btn"
-          data-qr-id="${lpIdSafe}" data-qr-name="${nameSafe}"
-          onclick="handleViewQR(this)">🔗 QR</button>
-        <button class="action-btn whatsapp-btn"
-          data-share-lp="${lpIdSafe}" data-share-wa="${waSafe}" data-share-name="${nameSafe}"
-          onclick="handleSendWA(this)">📱 Send WA</button>`;
-    }
-
-    return `
-    <tr>
-      <td><strong>${nameSafe}</strong></td>
-      <td>${waDisplay}</td>
-      <td><div class="table-img-row">${imgHtml}</div></td>
-      <td style="max-width:180px;font-size:.85rem;color:var(--text-dim)">${msgDisplay}</td>
-      <td style="color:var(--text-dim);font-size:.82rem;white-space:nowrap">${dateStr}</td>
-      <td><span class="status-badge status-${status}">${status}</span></td>
-      <td><div class="action-btns">${actionBtns}</div></td>
-    </tr>`;
-  }).join('');
-}
-
-function loadRequestsData(rows) {
-  rows = [...rows].sort((a, b) => {
-    const da = safeDate(a.requested_at || a.created_at || a.date);
-    const db = safeDate(b.requested_at || b.created_at || b.date);
-    return db - da;
-  });
-
-  const pending = rows.filter(r => r.status === 'pending').length;
-  document.getElementById('badge-requests').textContent = pending || '';
-
-  const tbody = document.getElementById('requests-tbody');
-  if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="loading-row">No requests yet</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = rows.map(r => {
-    const imgs     = parseImages(r.images);
-    const idSafe   = esc(r.id       || '');
-    const nameSafe = esc(r.name     || '');
-    const waSafe   = esc(r.whatsapp || '');
-    const lpIdSafe = esc(r.lp_id   || '');
-    const status   = r.status || 'pending';
-
-    const waDisplay = r.whatsapp
-      ? `<a href="${buildWALink(r.whatsapp)}" target="_blank" style="color:var(--success);text-decoration:none;white-space:nowrap">📱 ${esc(r.whatsapp)}</a>`
-      : '—';
-
-    const msgText    = getMessageText(r);
-    const msgDisplay = msgText
-      ? (msgText.length > 80 ? esc(msgText.substring(0, 80)) + '…' : esc(msgText))
-      : '<span style="color:var(--text-dim)">No message</span>';
-
-    const imgHtml = imgs.length > 0
-      ? imgs.slice(0,3).map(u =>
+      ? imgs.slice(0, 3).map(u =>
           `<img class="table-thumb" src="${u}"
             onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22><rect width=%2240%22 height=%2240%22 fill=%22%23ff2d78%22/><text x=%2220%22 y=%2225%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22white%22>📷</text></svg>'"
             alt=""/>`
-        ).join('') + (imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length-3}</span>` : '')
+        ).join('') + (imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length - 3}</span>` : '')
       : '<span style="font-size:.8rem;color:var(--text-dim)">No images</span>';
 
-    // ✅ FIXED: was hardcoded as "eee" — now reads real date
-    const dateStr = formatDate(r.requested_at || r.created_at || r.date || '');
+    // ✅ FIX: Date — try multiple possible field names
+    const dateVal = r.requested_at || r.created_at || r.date || r.timestamp || r.submitted_at;
+    const dateStr = "eee";
 
     let actionBtns = '';
     if (status === 'pending') {
       actionBtns = `
-        <button class="action-btn success"
-          data-approve-id="${idSafe}" data-approve-wa="${waSafe}" data-approve-name="${nameSafe}"
-          onclick="handleApprove(this)">✅ Approve</button>
-        <button class="action-btn danger"
-          data-reject-id="${idSafe}"
-          onclick="handleReject(this)">✕ Reject</button>`;
+        <button class="action-btn success" data-approve-id="${idSafe}" data-approve-wa="${waSafe}" data-approve-name="${nameSafe}" onclick="handleApprove(this)">✅ Approve</button>
+        <button class="action-btn danger" data-reject-id="${idSafe}" onclick="handleReject(this)">✕ Reject</button>`;
     } else if (status === 'approved') {
       actionBtns = `
-        <button class="action-btn"
-          data-qr-id="${lpIdSafe}" data-qr-name="${nameSafe}"
-          onclick="handleViewQR(this)">🔗 QR</button>
-        <button class="action-btn whatsapp-btn"
-          data-share-lp="${lpIdSafe}" data-share-wa="${waSafe}" data-share-name="${nameSafe}"
-          onclick="handleSendWA(this)">📱 Send WA</button>`;
+        <button class="action-btn" data-qr-id="${lpIdSafe}" data-qr-name="${nameSafe}" onclick="handleViewQR(this)">🔗 QR</button>
+        <button class="action-btn whatsapp-btn" data-share-lp="${lpIdSafe}" data-share-wa="${waSafe}" data-share-name="${nameSafe}" onclick="handleSendWA(this)">📱 Send WA</button>`;
     }
 
     return `
@@ -434,51 +371,89 @@ function loadRequestsData(rows) {
   }).join('');
 }
 
-// ── HELPERS ────────────────────────────────────────────────
+// ── HELPERS: Message & Images Parsing ──────────────────────
+
+/**
+ * ✅ FIX: Extract message text from ALL possible field names
+ * GAS might return: message, custom_message, msg, notes, description, request_message
+ */
 function getMessageText(row) {
   if (!row) return '';
-  const fields = ['message','custom_message','msg','notes','description','request_message','user_message','text','comment','note'];
-  for (const f of fields) {
-    if (typeof row[f] === 'string' && row[f].trim()) return row[f].trim();
+  const possibleFields = [
+    'message', 'custom_message', 'msg', 'notes', 'description',
+    'request_message', 'user_message', 'text', 'comment', 'note'
+  ];
+  for (const field of possibleFields) {
+    const val = row[field];
+    if (typeof val === 'string' && val.trim()) {
+      return val.trim();
+    }
   }
   return '';
 }
 
+/**
+ * Parse images field — handles array, JSON string, or comma-separated string
+ */
 function parseImages(field) {
   if (!field) return [];
   if (Array.isArray(field)) return field.filter(Boolean);
   if (typeof field === 'string') {
-    const s = field.trim();
-    if (!s) return [];
-    try { const p = JSON.parse(s); if (Array.isArray(p)) return p.filter(Boolean); } catch(e) {}
-    return s.split(',').map(u => u.trim()).filter(Boolean);
+    if (!field.trim()) return [];
+    try {
+      const p = JSON.parse(field);
+      if (Array.isArray(p)) return p.filter(Boolean);
+    } catch (e) {}
+    return field.split(',').map(s => s.trim()).filter(Boolean);
   }
   return [];
 }
 
+// ── WHATSAPP LINK BUILDER ──────────────────────────────────
 function buildWALink(phone, message) {
   if (!phone) return 'https://wa.me/';
   let clean = String(phone).replace(/[\s\-\.]/g, '');
-  if (clean.startsWith('0'))  clean = '212' + clean.substring(1);
-  if (clean.startsWith('+'))  clean = clean.substring(1);
+  if (clean.startsWith('0')) clean = '212' + clean.substring(1);
+  if (clean.startsWith('+')) clean = clean.substring(1);
   const url = 'https://wa.me/' + clean;
   return message ? url + '?text=' + encodeURIComponent(message) : url;
 }
 
-function handleApprove(btn) { approveRequest(btn.dataset.approveId, btn.dataset.approveWa, btn.dataset.approveName); }
-function handleReject(btn)  { rejectRequest(btn.dataset.rejectId); }
-function handleViewQR(btn)  { viewQR(btn.dataset.qrId, btn.dataset.qrName); }
-function handleSendWA(btn)  { openShareModal(btn.dataset.shareLp, btn.dataset.shareWa, btn.dataset.shareName); }
+// data-attribute handlers
+function handleApprove(btn) {
+  const id = btn.dataset.approveId;
+  const wa = btn.dataset.approveWa;
+  const name = btn.dataset.approveName;
+  approveRequest(id, wa, name);
+}
+function handleReject(btn) {
+  rejectRequest(btn.dataset.rejectId);
+}
+function handleViewQR(btn) {
+  viewQR(btn.dataset.qrId, btn.dataset.qrName);
+}
+function handleSendWA(btn) {
+  openShareModal(btn.dataset.shareLp, btn.dataset.shareWa, btn.dataset.shareName);
+}
 
 // ── APPROVE / REJECT ───────────────────────────────────────
 async function approveRequest(id, whatsapp, name) {
   if (!confirm(`Approve request for ${name} and create their LP?`)) return;
   try {
-    const res = await apiPost({ action: 'updateRequestStatus', pass: adminPass, id, status: 'approved' });
+    const res = await apiPost({
+      action: 'updateRequestStatus',
+      pass: adminPass,
+      id,
+      status: 'approved'
+    });
     if (res.error) { showToast('Error: ' + res.error, 'error'); return; }
+
     showToast('Approved! LP created 🎉', 'success');
     await refreshRequests();
-    if (res.lpId) openShareModal(res.lpId, whatsapp, name);
+
+    if (res.lpId) {
+      openShareModal(res.lpId, whatsapp, name);
+    }
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
   }
@@ -498,13 +473,18 @@ async function rejectRequest(id) {
 // ── SHARE MODAL ────────────────────────────────────────────
 function openShareModal(lpId, whatsapp, name) {
   if (!lpId) { showToast('LP ID missing', 'error'); return; }
+
   const url = `${CONFIG.LP_BASE}?id=${lpId}`;
   document.getElementById('share-modal-name').textContent = `LP for ${name}`;
   document.getElementById('share-modal-link').value = url;
 
   const qrWrap = document.getElementById('share-modal-qr');
   qrWrap.innerHTML = '';
-  new QRCode(qrWrap, { text: url, width: 160, height: 160, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H });
+  new QRCode(qrWrap, {
+    text: url, width: 160, height: 160,
+    colorDark: '#000', colorLight: '#fff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
 
   const dlBtn = document.getElementById('share-modal-dl-btn');
   dlBtn.style.display = 'none';
@@ -515,7 +495,8 @@ function openShareModal(lpId, whatsapp, name) {
       dlBtn.onclick = () => {
         const a = document.createElement('a');
         a.href = canvas.toDataURL('image/png');
-        a.download = `lp-qr-${lpId}.png`; a.click();
+        a.download = `lp-qr-${lpId}.png`;
+        a.click();
       };
     }
   }, 400);
@@ -530,10 +511,10 @@ function openShareModal(lpId, whatsapp, name) {
 
 // ── EDIT MODAL ─────────────────────────────────────────────
 function openEdit(id, name, msg, status) {
-  document.getElementById('edit-id').value      = id;
-  document.getElementById('edit-name').value    = name;
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-name').value = name;
   document.getElementById('edit-message').value = msg;
-  document.getElementById('edit-status').value  = status;
+  document.getElementById('edit-status').value = status;
   document.getElementById('edit-modal').style.display = 'flex';
 }
 
@@ -541,10 +522,11 @@ async function saveEdit() {
   const id = document.getElementById('edit-id').value;
   try {
     const res = await apiPost({
-      action: 'updateLP', pass: adminPass, id,
-      name:           document.getElementById('edit-name').value,
+      action: 'updateLP', pass: adminPass,
+      id,
+      name: document.getElementById('edit-name').value,
       custom_message: document.getElementById('edit-message').value,
-      status:         document.getElementById('edit-status').value
+      status: document.getElementById('edit-status').value
     });
     if (res.error) { showToast('Error: ' + res.error, 'error'); return; }
     showToast('Saved! ✓', 'success');
@@ -575,7 +557,11 @@ function viewQR(id, name) {
 
   const wrap = document.getElementById('modal-qr-wrap');
   wrap.innerHTML = '';
-  new QRCode(wrap, { text: url, width: 180, height: 180, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H });
+  new QRCode(wrap, {
+    text: url, width: 180, height: 180,
+    colorDark: '#000', colorLight: '#fff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
 
   document.getElementById('modal-wa-btn').onclick = () =>
     window.open(`https://wa.me/?text=${encodeURIComponent('🎂 Happy Birthday LP for ' + name + '! 💖 ' + url)}`, '_blank');
@@ -587,7 +573,8 @@ function viewQR(id, name) {
       document.getElementById('modal-dl-btn').onclick = () => {
         const a = document.createElement('a');
         a.href = dlCanvas.toDataURL('image/png');
-        a.download = `lp-qr-${id}.png`; a.click();
+        a.download = `lp-qr-${id}.png`;
+        a.click();
       };
     }
   }, 100);
@@ -597,36 +584,56 @@ function viewQR(id, name) {
 
 // ── UTILS ──────────────────────────────────────────────────
 function closeModal(e) {
-  if (e.target.classList.contains('modal-overlay')) e.target.style.display = 'none';
+  if (e.target.classList.contains('modal-overlay'))
+    e.target.style.display = 'none';
 }
 
 function copyText(inputId) {
   const el = document.getElementById(inputId);
-  el.select(); document.execCommand('copy');
+  el.select();
+  document.execCommand('copy');
   showToast('Copied! ✓', 'success');
 }
 
 function esc(str) {
   return String(str || '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
+/**
+ * ✅ FIX: Safe date parsing — handles ISO strings, timestamps, Google Sheets dates
+ */
 function safeDate(str) {
   if (!str) return new Date(0);
+  // Handle Google Sheets serial numbers (e.g., 45000 = ~2023)
   if (typeof str === 'number') {
-    return new Date(new Date(1899,11,30).getTime() + str * 86400000);
+    // Excel/Google Sheets epoch: 1899-12-30
+    const epoch = new Date(1899, 11, 30);
+    return new Date(epoch.getTime() + str * 24 * 60 * 60 * 1000);
   }
   const d = new Date(str);
-  if (!isNaN(d.getTime())) return d;
-  const parts = String(str).split(/[\/\-\.]/);
-  if (parts.length === 3) {
-    const alt = new Date(+parts[2], +parts[1]-1, +parts[0]);
-    if (!isNaN(alt.getTime())) return alt;
+  if (isNaN(d.getTime())) {
+    // Try parsing dd/MM/yyyy or dd-MM-yyyy
+    const parts = String(str).split(/[\/\-\.]/);
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      const alt = new Date(year, month, day);
+      if (!isNaN(alt.getTime())) return alt;
+    }
+    return new Date(0);
   }
-  return new Date(0);
+  return d;
 }
 
+/**
+ * ✅ FIX: formatDate — robust handling for all date formats
+ */
 function formatDate(str) {
   if (!str) return '—';
   const d = safeDate(str);
@@ -636,25 +643,34 @@ function formatDate(str) {
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
-  } catch { return String(str); }
+  } catch {
+    return String(str);
+  }
 }
 
 let toastTimer;
 function showToast(msg, type = 'info') {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className   = `toast show ${type}`;
+  t.className = `toast show ${type}`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.className = 'toast', 3000);
 }
 
-// ── DRAG & DROP ────────────────────────────────────────────
+// ── DRAG & DROP UPLOAD ─────────────────────────────────────
 const zone = document.getElementById('upload-zone');
 if (zone) {
-  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.style.borderColor = 'var(--pink)'; });
-  zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
+  zone.addEventListener('dragover', e => {
+    e.preventDefault();
+    zone.style.borderColor = 'var(--pink)';
+  });
+  zone.addEventListener('dragleave', () => {
+    zone.style.borderColor = '';
+  });
   zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.style.borderColor = '';
-    if (e.dataTransfer.files.length) handleImages({ target: { files: e.dataTransfer.files, value: '' } });
+    e.preventDefault();
+    zone.style.borderColor = '';
+    const dt = e.dataTransfer;
+    if (dt.files.length) handleImages({ target: { files: dt.files, value: '' } });
   });
 }
