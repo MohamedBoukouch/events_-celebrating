@@ -1,13 +1,11 @@
 /* =====================================================
    LP ADMIN DASHBOARD — JavaScript (FULLY FIXED v4)
-   Changes vs v3:
-     • Fixed hardcoded dateStr = "eee" in loadRequestsData
-     • Uses formatDate() correctly for request rows
+   Fix: dateStr was hardcoded "eee" in requests table
    ===================================================== */
 
 const CONFIG = {
-  API_URL: 'https://events-celebrating.vercel.app/api/proxy',
-  LP_BASE: 'https://events-celebrating.vercel.app/lp.html',
+  API_URL:    'https://events-celebrating.vercel.app/api/proxy',
+  LP_BASE:    'https://events-celebrating.vercel.app/lp.html',
   ADMIN_PASS: '0000'
 };
 
@@ -63,9 +61,9 @@ async function apiGet(params) {
 
 async function apiPost(body) {
   const res = await fetch(CONFIG.API_URL, {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body:    JSON.stringify(body)
   });
   return res.json();
 }
@@ -158,9 +156,9 @@ async function createLP() {
 
   try {
     if (uploadedImages.length > 0) {
-      const newURLs = await uploadAllImages();
-      uploadedURLs  = [...uploadedURLs, ...newURLs];
-      uploadedImages = [];
+      const newURLs   = await uploadAllImages();
+      uploadedURLs    = [...uploadedURLs, ...newURLs];
+      uploadedImages  = [];
     }
 
     btn.innerHTML = '<span class="spinner"></span> Creating LP...';
@@ -184,7 +182,7 @@ async function createLP() {
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
   } finally {
-    btn.disabled = false;
+    btn.disabled  = false;
     btn.innerHTML = '<span>✨ Generate LP</span>';
   }
 }
@@ -202,9 +200,7 @@ function downloadQR() {
   const canvas = document.querySelector('#qr-wrap canvas');
   if (!canvas) { showToast('QR not ready', 'error'); return; }
   const a = document.createElement('a');
-  a.href = canvas.toDataURL('image/png');
-  a.download = 'lp-qr.png';
-  a.click();
+  a.href = canvas.toDataURL('image/png'); a.download = 'lp-qr.png'; a.click();
 }
 
 function shareWA() {
@@ -237,14 +233,13 @@ function loadClientsData(rows) {
 
   tbody.innerHTML = rows.map(r => {
     const imgs      = parseImages(r.images);
-    const idSafe    = esc(r.id || '');
-    const nameSafe  = esc(r.name || '');
+    const idSafe    = esc(r.id    || '');
+    const nameSafe  = esc(r.name  || '');
     const msgText   = getMessageText(r);
-    const msgSafe   = esc(msgText);
     const status    = r.status || 'active';
     const dateStr   = formatDate(r.created_at);
-    const msgDisplay = msgSafe
-      ? (msgSafe.length > 60 ? msgSafe.substring(0, 60) + '…' : msgSafe)
+    const msgDisplay = msgText
+      ? (msgText.length > 60 ? esc(msgText.substring(0, 60)) + '…' : esc(msgText))
       : '<span style="color:var(--text-dim)">—</span>';
 
     return `
@@ -254,8 +249,8 @@ function loadClientsData(rows) {
       <td><span class="status-badge status-${status}">${status}</span></td>
       <td>
         <div class="table-img-row">
-          ${imgs.slice(0, 3).map(u => `<img class="table-thumb" src="${u}" onerror="this.style.display='none'" alt=""/>`).join('')}
-          ${imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length - 3}</span>` : ''}
+          ${imgs.slice(0,3).map(u => `<img class="table-thumb" src="${u}" onerror="this.style.display='none'" alt=""/>`).join('')}
+          ${imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length-3}</span>` : ''}
         </div>
       </td>
       <td style="max-width:200px;font-size:.82rem;color:var(--text-dim)">${msgDisplay}</td>
@@ -301,10 +296,10 @@ function loadRequestsData(rows) {
 
   tbody.innerHTML = rows.map(r => {
     const imgs     = parseImages(r.images);
-    const idSafe   = esc(r.id || '');
-    const nameSafe = esc(r.name || '');
+    const idSafe   = esc(r.id       || '');
+    const nameSafe = esc(r.name     || '');
     const waSafe   = esc(r.whatsapp || '');
-    const lpIdSafe = esc(r.lp_id || '');
+    const lpIdSafe = esc(r.lp_id   || '');
     const status   = r.status || 'pending';
 
     const waDisplay = r.whatsapp
@@ -317,14 +312,14 @@ function loadRequestsData(rows) {
       : '<span style="color:var(--text-dim)">No message</span>';
 
     const imgHtml = imgs.length > 0
-      ? imgs.slice(0, 3).map(u =>
+      ? imgs.slice(0,3).map(u =>
           `<img class="table-thumb" src="${u}"
             onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22><rect width=%2240%22 height=%2240%22 fill=%22%23ff2d78%22/><text x=%2220%22 y=%2225%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22white%22>📷</text></svg>'"
             alt=""/>`
         ).join('') + (imgs.length > 3 ? `<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length-3}</span>` : '')
       : '<span style="font-size:.8rem;color:var(--text-dim)">No images</span>';
 
-    // ✅ FIX: was hardcoded "eee" — now uses the correct date field
+    // ✅ FIXED: was hardcoded as "eee" — now reads real date
     const dateStr = formatDate(r.requested_at || r.created_at || r.date || '');
 
     let actionBtns = '';
@@ -390,7 +385,6 @@ function buildWALink(phone, message) {
   return message ? url + '?text=' + encodeURIComponent(message) : url;
 }
 
-// data-attribute event handlers
 function handleApprove(btn) { approveRequest(btn.dataset.approveId, btn.dataset.approveWa, btn.dataset.approveName); }
 function handleReject(btn)  { rejectRequest(btn.dataset.rejectId); }
 function handleViewQR(btn)  { viewQR(btn.dataset.qrId, btn.dataset.qrName); }
@@ -439,7 +433,8 @@ function openShareModal(lpId, whatsapp, name) {
     if (canvas) {
       dlBtn.style.display = '';
       dlBtn.onclick = () => {
-        const a = document.createElement('a'); a.href = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
         a.download = `lp-qr-${lpId}.png`; a.click();
       };
     }
@@ -512,8 +507,7 @@ function viewQR(id, name) {
       document.getElementById('modal-dl-btn').onclick = () => {
         const a = document.createElement('a');
         a.href = dlCanvas.toDataURL('image/png');
-        a.download = `lp-qr-${id}.png`;
-        a.click();
+        a.download = `lp-qr-${id}.png`; a.click();
       };
     }
   }, 100);
@@ -528,8 +522,7 @@ function closeModal(e) {
 
 function copyText(inputId) {
   const el = document.getElementById(inputId);
-  el.select();
-  document.execCommand('copy');
+  el.select(); document.execCommand('copy');
   showToast('Copied! ✓', 'success');
 }
 
@@ -542,8 +535,7 @@ function esc(str) {
 function safeDate(str) {
   if (!str) return new Date(0);
   if (typeof str === 'number') {
-    const epoch = new Date(1899, 11, 30);
-    return new Date(epoch.getTime() + str * 86400000);
+    return new Date(new Date(1899,11,30).getTime() + str * 86400000);
   }
   const d = new Date(str);
   if (!isNaN(d.getTime())) return d;
@@ -571,7 +563,7 @@ let toastTimer;
 function showToast(msg, type = 'info') {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className = `toast show ${type}`;
+  t.className   = `toast show ${type}`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.className = 'toast', 3000);
 }
@@ -579,7 +571,7 @@ function showToast(msg, type = 'info') {
 // ── DRAG & DROP ────────────────────────────────────────────
 const zone = document.getElementById('upload-zone');
 if (zone) {
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = 'var(--pink)'; });
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.style.borderColor = 'var(--pink)'; });
   zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
   zone.addEventListener('drop', e => {
     e.preventDefault(); zone.style.borderColor = '';

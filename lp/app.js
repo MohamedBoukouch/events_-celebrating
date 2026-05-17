@@ -39,7 +39,7 @@ const MUSIC = {
 
 // ── PAGE INIT ─────────────────────────────────────────────
 const params = new URLSearchParams(window.location.search);
-const lpId = params.get('id');
+const lpId   = params.get('id');
 
 MUSIC.init();
 
@@ -55,7 +55,7 @@ async function loadLP(id) {
     const url = new URL(LP_CONFIG.API_URL);
     url.searchParams.set('action', 'getLP');
     url.searchParams.set('id', id);
-    const res = await fetch(url.toString());
+    const res  = await fetch(url.toString());
     const data = await res.json();
     if (data.error || !data.data) { showError(); return; }
     initLP(data.data);
@@ -65,7 +65,7 @@ async function loadLP(id) {
 }
 
 function showError() {
-  document.getElementById('lp-screen').style.display = 'none';
+  document.getElementById('lp-screen').style.display    = 'none';
   document.getElementById('error-screen').style.display = 'flex';
 }
 
@@ -73,15 +73,17 @@ function showError() {
 let BOOK_IMAGES = [];
 
 function initLP(lpData) {
-  BOOK_IMAGES = lpData.images || [];
-  const name = lpData.name || 'You';
-  const msg = lpData.custom_message || '';
+  BOOK_IMAGES = Array.isArray(lpData.images) ? lpData.images.filter(Boolean) : [];
+  const name  = lpData.name           || 'You';
+  const msg   = lpData.custom_message || '';
+
   document.getElementById('word-name').textContent = name.toUpperCase();
   if (msg) {
     document.getElementById('custom-msg-section').style.display = 'block';
     document.getElementById('custom-msg-card').textContent = msg;
   }
   document.title = `Happy Birthday ${name}! 💖`;
+
   initStars(); initMatrix(); initHearts(); initConfetti();
   setTimeout(runCountdown, 400);
 }
@@ -90,7 +92,7 @@ function initLP(lpData) {
 function initStars() {
   const starsEl = document.getElementById('stars');
   for (let i = 0; i < 200; i++) {
-    const s = document.createElement('div');
+    const s  = document.createElement('div');
     s.className = 'star';
     const sz = Math.random() * 3 + 1;
     s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*3+1).toFixed(1)}s;animation-delay:${(Math.random()*3).toFixed(1)}s`;
@@ -100,7 +102,8 @@ function initStars() {
 
 // ── MATRIX ────────────────────────────────────────────────
 function initMatrix() {
-  const cv = document.getElementById('matrix'), ctx = cv.getContext('2d');
+  const cv  = document.getElementById('matrix');
+  const ctx = cv.getContext('2d');
   function resize() { cv.width = window.innerWidth; cv.height = window.innerHeight; }
   resize(); window.addEventListener('resize', resize);
   const chars = 'ｦｧｨｩｪｫｬｭｮｯｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789♥♡❤';
@@ -111,7 +114,9 @@ function initMatrix() {
     ctx.fillStyle = 'rgba(4,1,15,0.08)'; ctx.fillRect(0, 0, cv.width, cv.height);
     for (let i = 0; i < drops.length; i++) {
       const ch = chars[Math.floor(Math.random() * chars.length)];
-      ctx.fillStyle = Math.random() > .85 ? '#ff2d78' : `rgba(255,${Math.floor(Math.random()*60+20)},${Math.floor(Math.random()*80+40)},${0.5+Math.random()*0.5})`;
+      ctx.fillStyle = Math.random() > .85
+        ? '#ff2d78'
+        : `rgba(255,${Math.floor(Math.random()*60+20)},${Math.floor(Math.random()*80+40)},${0.5+Math.random()*0.5})`;
       ctx.font = `${fs}px monospace`;
       ctx.fillText(ch, i * fs, drops[i] * fs);
       if (drops[i] * fs > cv.height && Math.random() > .975) drops[i] = 0;
@@ -148,15 +153,16 @@ function initConfetti() {
 // ── COUNTDOWN + SEQUENCE ──────────────────────────────────
 function runCountdown() {
   const overlay = document.getElementById('countdown-overlay');
-  const numEl = document.getElementById('countdown-num');
-  const steps = ['3','2','1','GO!'];
+  const numEl   = document.getElementById('countdown-num');
+  const steps   = ['3','2','1','GO!'];
   let i = 0;
   function tick() {
     numEl.textContent = steps[i];
     numEl.style.animation = 'none'; void numEl.offsetWidth; numEl.style.animation = 'cpop .5s ease-out';
     i++;
-    if (i < steps.length) { setTimeout(tick, 1000); }
-    else {
+    if (i < steps.length) {
+      setTimeout(tick, 1000);
+    } else {
       overlay.classList.add('hidden');
       setTimeout(() => {
         overlay.style.display = 'none';
@@ -207,16 +213,16 @@ function startSequence() {
    BOOK ENGINE
    ═══════════════════════════════════════════════════ */
 let bookOpen = false, currentSpread = 0, isAnimating = false, totalSpreads = 0;
-const closedBook = document.getElementById('closed-book');
-const openBookWrap = document.getElementById('open-book-wrap');
-const openBookEl = document.getElementById('open-book');
-const staticLeft = document.getElementById('static-left');
-const flipPage = document.getElementById('flip-page');
-const flipFront = document.getElementById('flip-front');
-const flipBack = document.getElementById('flip-back');
-const bookProgress = document.getElementById('book-progress');
-const arrowLeft = document.getElementById('arrow-left');
-const arrowRight = document.getElementById('arrow-right');
+const closedBook    = document.getElementById('closed-book');
+const openBookWrap  = document.getElementById('open-book-wrap');
+const openBookEl    = document.getElementById('open-book');
+const staticLeft    = document.getElementById('static-left');
+const flipPage      = document.getElementById('flip-page');
+const flipFront     = document.getElementById('flip-front');
+const flipBack      = document.getElementById('flip-back');
+const bookProgress  = document.getElementById('book-progress');
+const arrowLeft     = document.getElementById('arrow-left');
+const arrowRight    = document.getElementById('arrow-right');
 
 let spreads = [];
 
@@ -224,7 +230,7 @@ function buildSpreads() {
   const s = [];
   for (let i = 0; i < BOOK_IMAGES.length; i += 2)
     s.push([BOOK_IMAGES[i] || null, BOOK_IMAGES[i+1] || null]);
-  s.push([null, null]);
+  s.push([null, null]); // last page
   return s;
 }
 
@@ -242,10 +248,10 @@ function getSpreadHTML(img, side, idx, total) {
 function renderSpread(idx) {
   if (!spreads.length) return;
   const spread = spreads[idx];
-  staticLeft.innerHTML = getSpreadHTML(spread[0], 'left', idx, spreads.length);
-  flipFront.innerHTML = getSpreadHTML(spread[1], 'right', idx, spreads.length);
-  arrowLeft.style.opacity = idx > 0 ? '0.4' : '0.1';
-  arrowRight.style.opacity = idx < spreads.length - 1 ? '0.4' : '0.1';
+  staticLeft.innerHTML = getSpreadHTML(spread[0], 'left',  idx, spreads.length);
+  flipFront.innerHTML  = getSpreadHTML(spread[1], 'right', idx, spreads.length);
+  arrowLeft.style.opacity  = idx > 0                    ? '0.4' : '0.1';
+  arrowRight.style.opacity = idx < spreads.length - 1   ? '0.4' : '0.1';
   document.querySelectorAll('.prog-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
 }
 
@@ -262,15 +268,19 @@ function openBook() {
   if (bookOpen) return;
   bookOpen = true;
   spreads = buildSpreads(); totalSpreads = spreads.length; currentSpread = 0;
-  closedBook.style.transform = 'scale(0.8) rotateY(15deg)';
-  closedBook.style.opacity = '0'; closedBook.style.transition = 'all 0.4s ease';
+  closedBook.style.transform  = 'scale(0.8) rotateY(15deg)';
+  closedBook.style.opacity    = '0';
+  closedBook.style.transition = 'all 0.4s ease';
   setTimeout(() => {
-    closedBook.style.display = 'none'; openBookWrap.classList.add('active');
+    closedBook.style.display = 'none';
+    openBookWrap.classList.add('active');
     buildProgressDots(); renderSpread(0);
-    openBookEl.style.opacity = '0'; openBookEl.style.transform = 'scale(0.7) rotateX(10deg)';
+    openBookEl.style.opacity    = '0';
+    openBookEl.style.transform  = 'scale(0.7) rotateX(10deg)';
     openBookEl.style.transition = 'all 0.6s cubic-bezier(0.175,0.885,0.32,1.275)';
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      openBookEl.style.opacity = '1'; openBookEl.style.transform = 'scale(1) rotateX(0)';
+      openBookEl.style.opacity   = '1';
+      openBookEl.style.transform = 'scale(1) rotateX(0)';
     }));
   }, 400);
 }
@@ -280,13 +290,14 @@ const FLIP_THRESHOLD = 80;
 
 function startDrag(e) {
   if (isAnimating) return;
-  isDragging = true;
-  dragStartX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-  dragProgress = 0; flipPage.style.transition = 'none';
+  isDragging  = true;
+  dragStartX  = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+  dragProgress = 0;
+  flipPage.style.transition = 'none';
   document.addEventListener('mousemove', onDrag);
-  document.addEventListener('mouseup', endDrag);
+  document.addEventListener('mouseup',   endDrag);
   document.addEventListener('touchmove', onDrag, { passive: false });
-  document.addEventListener('touchend', endDrag);
+  document.addEventListener('touchend',  endDrag);
 }
 function onDrag(e) {
   if (!isDragging) return; if (e.cancelable) e.preventDefault();
@@ -299,50 +310,62 @@ function onDrag(e) {
     flipPage.style.transform = `rotateY(${Math.min(20, Math.abs(dragProgress)*.2)}deg)`;
 }
 function endDrag() {
-  if (!isDragging) return; isDragging = false;
-  document.removeEventListener('mousemove', onDrag); document.removeEventListener('mouseup', endDrag);
-  document.removeEventListener('touchmove', onDrag); document.removeEventListener('touchend', endDrag);
+  if (!isDragging) return;
+  isDragging = false;
+  document.removeEventListener('mousemove', onDrag); document.removeEventListener('mouseup',   endDrag);
+  document.removeEventListener('touchmove', onDrag); document.removeEventListener('touchend',  endDrag);
   flipPage.style.transition = '';
-  if (dragProgress > FLIP_THRESHOLD && currentSpread < spreads.length - 1) flipForward();
-  else if (dragProgress < -FLIP_THRESHOLD && currentSpread > 0) flipBackward();
-  else { flipPage.style.transition = 'transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275)'; flipPage.style.transform = 'rotateY(0deg)'; }
+  if      (dragProgress >  FLIP_THRESHOLD && currentSpread < spreads.length - 1) flipForward();
+  else if (dragProgress < -FLIP_THRESHOLD && currentSpread > 0)                  flipBackward();
+  else {
+    flipPage.style.transition = 'transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275)';
+    flipPage.style.transform  = 'rotateY(0deg)';
+  }
 }
 
 function flipForward() {
-  if (isAnimating || currentSpread >= spreads.length - 1) return; isAnimating = true;
+  if (isAnimating || currentSpread >= spreads.length - 1) return;
+  isAnimating = true;
   const next = spreads[currentSpread + 1];
-  flipBack.innerHTML = getSpreadHTML(next[0], 'left', currentSpread + 1, spreads.length);
+  flipBack.innerHTML      = getSpreadHTML(next[0], 'left', currentSpread + 1, spreads.length);
   flipBack.style.borderRadius = '12px 0 0 12px';
-  flipPage.style.transition = 'transform 0.65s cubic-bezier(0.645,0.045,0.355,1.000)';
-  flipPage.style.transform = 'rotateY(-180deg)';
+  flipPage.style.transition   = 'transform 0.65s cubic-bezier(0.645,0.045,0.355,1.000)';
+  flipPage.style.transform    = 'rotateY(-180deg)';
   setTimeout(() => {
-    currentSpread++; renderSpread(currentSpread);
-    flipPage.style.transition = 'none'; flipPage.style.transform = 'rotateY(0deg)'; isAnimating = false;
+    currentSpread++;
+    renderSpread(currentSpread);
+    flipPage.style.transition = 'none'; flipPage.style.transform = 'rotateY(0deg)';
+    isAnimating = false;
     if (currentSpread === spreads.length - 1) setTimeout(() => closeBook(), 2500);
   }, 650);
 }
 function flipBackward() {
-  if (isAnimating || currentSpread <= 0) return; isAnimating = true;
+  if (isAnimating || currentSpread <= 0) return;
+  isAnimating = true;
   const prev = spreads[currentSpread - 1];
-  flipBack.innerHTML = getSpreadHTML(prev[1], 'right', currentSpread - 1, spreads.length);
+  flipBack.innerHTML          = getSpreadHTML(prev[1], 'right', currentSpread - 1, spreads.length);
   flipBack.style.borderRadius = '0 12px 12px 0';
-  flipPage.style.transition = 'none'; flipPage.style.transform = 'rotateY(-180deg)';
+  flipPage.style.transition   = 'none'; flipPage.style.transform = 'rotateY(-180deg)';
   requestAnimationFrame(() => requestAnimationFrame(() => {
     flipPage.style.transition = 'transform 0.65s cubic-bezier(0.645,0.045,0.355,1.000)';
-    flipPage.style.transform = 'rotateY(0deg)';
+    flipPage.style.transform  = 'rotateY(0deg)';
   }));
   setTimeout(() => { currentSpread--; renderSpread(currentSpread); isAnimating = false; }, 650);
 }
 
 function closeBook() {
   openBookEl.style.transition = 'all 0.7s cubic-bezier(0.6,-0.28,0.735,0.045)';
-  openBookEl.style.transform = 'scale(0.5) rotateX(20deg)'; openBookEl.style.opacity = '0';
+  openBookEl.style.transform  = 'scale(0.5) rotateX(20deg)';
+  openBookEl.style.opacity    = '0';
   setTimeout(() => {
-    openBookWrap.classList.remove('active'); closedBook.style.display = '';
-    closedBook.style.transform = 'scale(0.8) rotateY(-15deg)'; closedBook.style.opacity = '0';
+    openBookWrap.classList.remove('active');
+    closedBook.style.display    = '';
+    closedBook.style.transform  = 'scale(0.8) rotateY(-15deg)';
+    closedBook.style.opacity    = '0';
     closedBook.style.transition = 'all 0.5s cubic-bezier(0.175,0.885,0.32,1.275)';
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      closedBook.style.transform = 'scale(1) rotateY(0)'; closedBook.style.opacity = '1';
+      closedBook.style.transform = 'scale(1) rotateY(0)';
+      closedBook.style.opacity   = '1';
     }));
     openBookEl.style.transform = ''; openBookEl.style.opacity = '';
     bookOpen = false; currentSpread = 0;
@@ -353,49 +376,68 @@ function closeBook() {
 if (openBookEl) {
   openBookEl.addEventListener('click', function(e) {
     if (isAnimating || isDragging) return;
-    const r = openBookEl.getBoundingClientRect();
-    const x = e.clientX - r.left; const hw = r.width / 2;
-    if (x > hw * 1.3) flipForward();
+    const r  = openBookEl.getBoundingClientRect();
+    const x  = e.clientX - r.left;
+    const hw = r.width / 2;
+    if      (x > hw * 1.3)              flipForward();
     else if (x < hw * .7 && currentSpread > 0) flipBackward();
   });
 }
 if (staticLeft) {
   staticLeft.addEventListener('touchstart', startDrag);
-  staticLeft.addEventListener('mousedown', startDrag);
+  staticLeft.addEventListener('mousedown',  startDrag);
 }
 
 /* ── HEART FORMATION ─────────────────────────────── */
 function showHeartFormation() {
-  const hf = document.getElementById('heart-formation');
+  const hf     = document.getElementById('heart-formation');
   const canvas = document.getElementById('heart-canvas');
   hf.classList.add('show');
+
   const hfStars = document.getElementById('hf-stars');
   hfStars.innerHTML = '';
   for (let i = 0; i < 80; i++) {
-    const s = document.createElement('div'); s.className = 'star';
+    const s  = document.createElement('div'); s.className = 'star';
     const sz = Math.random() * 2 + 0.5;
     s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*3+1).toFixed(1)}s`;
     hfStars.appendChild(s);
   }
+
   canvas.querySelectorAll('.hf-card').forEach(c => c.remove());
-  const imgs = BOOK_IMAGES; if (!imgs.length) return;
+  const imgs = BOOK_IMAGES;
+  if (!imgs.length) return;
+
   const vmin = Math.min(window.innerWidth * 0.90, window.innerHeight * 0.72, 520);
   const SIZE = vmin;
   canvas.style.width = SIZE + 'px'; canvas.style.height = SIZE + 'px';
-  function hXY(t) { return { x: 16 * Math.pow(Math.sin(t), 3), y: -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) }; }
+
+  function hXY(t) {
+    return {
+      x:  16 * Math.pow(Math.sin(t), 3),
+      y: -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t))
+    };
+  }
+
   const NUM = 14; const rawPts = []; const tangents = [];
   for (let i = 0; i < NUM; i++) {
     const t = (i / NUM) * 2 * Math.PI; rawPts.push(hXY(t));
     const dt = 0.01, a = hXY(t), b = hXY(t + dt);
     tangents.push(Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI);
   }
+
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   rawPts.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
-  const pad = SIZE * .12, scX = (SIZE-pad*2)/(maxX-minX), scY = (SIZE-pad*2)/(maxY-minY), sc = Math.min(scX, scY);
-  const oX = pad + ((SIZE-pad*2)-(maxX-minX)*sc)/2, oY = pad + ((SIZE-pad*2)-(maxY-minY)*sc)/2;
+
+  const pad = SIZE * .12;
+  const scX = (SIZE-pad*2)/(maxX-minX), scY = (SIZE-pad*2)/(maxY-minY), sc = Math.min(scX, scY);
+  const oX  = pad + ((SIZE-pad*2)-(maxX-minX)*sc)/2;
+  const oY  = pad + ((SIZE-pad*2)-(maxY-minY)*sc)/2;
   const toC = p => ({ x: oX + (p.x-minX)*sc, y: oY + (p.y-minY)*sc });
-  const CW = SIZE*0.26, CH = SIZE*0.28, cPad = SIZE*0.018, cBot = SIZE*0.06, iW = CW-cPad*2, iH = CH-cPad-cBot;
-  const svgEl = document.getElementById('hf-heart-glow');
+
+  const CW = SIZE*0.26, CH = SIZE*0.28, cPad = SIZE*0.018, cBot = SIZE*0.06;
+  const iW = CW-cPad*2, iH = CH-cPad-cBot;
+
+  const svgEl  = document.getElementById('hf-heart-glow');
   const pathEl = document.getElementById('hf-heart-path');
   svgEl.setAttribute('viewBox', `0 0 ${SIZE} ${SIZE}`);
   const svgD = [];
@@ -405,8 +447,10 @@ function showHeartFormation() {
   }
   pathEl.setAttribute('d', svgD.join('') + 'Z');
   setTimeout(() => svgEl.classList.add('visible'), 400);
+
   rawPts.forEach((rp, i) => {
-    const cp = toC(rp); const img = imgs[i % imgs.length];
+    const cp   = toC(rp);
+    const img  = imgs[i % imgs.length];
     const tilt = tangents[i] + (Math.random() - .5) * 25;
     const card = document.createElement('div'); card.className = 'hf-card';
     card.style.cssText = `width:${CW}px;height:${CH}px;left:${cp.x-CW/2}px;top:${cp.y-CH/2}px;padding:${cPad}px ${cPad}px ${cBot}px ${cPad}px;transform:scale(0) rotate(${tilt}deg);opacity:0;`;
@@ -414,7 +458,8 @@ function showHeartFormation() {
     canvas.appendChild(card);
     setTimeout(() => {
       card.style.transition = 'opacity .4s ease, transform .55s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow .3s';
-      card.style.transform = `scale(1) rotate(${tilt}deg)`; card.style.opacity = '1';
+      card.style.transform  = `scale(1) rotate(${tilt}deg)`;
+      card.style.opacity    = '1';
     }, i * 100);
   });
 }
@@ -427,25 +472,24 @@ function closeHeartFormation() {
 }
 
 /* ═══════════════════════════════════════════════════
-   REQUEST FORM — FULLY FIXED
+   REQUEST FORM
    ═══════════════════════════════════════════════════ */
 let reqImages = [];
 
-/* Compress image to avoid 413 Payload Too Large */
 function compressImage(file, maxWidth = 1200, quality = 0.8) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = function(e) {
       const img = new Image();
       img.onload = function() {
-        let width = img.width;
+        let width  = img.width;
         let height = img.height;
         if (width > maxWidth) {
           height = Math.round(height * (maxWidth / width));
-          width = maxWidth;
+          width  = maxWidth;
         }
         const canvas = document.createElement('canvas');
-        canvas.width = width;
+        canvas.width  = width;
         canvas.height = height;
         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
         canvas.toBlob((blob) => {
@@ -462,25 +506,22 @@ function compressImage(file, maxWidth = 1200, quality = 0.8) {
 }
 
 function handleReqImages(e) {
-  const files = Array.from(e.target.files || []);
+  const files   = Array.from(e.target.files || []);
   const allowed = 6 - reqImages.length;
 
   files.slice(0, allowed).forEach(async (file) => {
     if (file.size > 5 * 1024 * 1024) { alert('Image too large (max 5MB)'); return; }
-
     try {
-      /* Compress before converting to base64 — shrinks payload by ~70% */
       const compressedFile = await compressImage(file, 1200, 0.8);
-
       const r = new FileReader();
       r.onload = ev => {
-        const dataUrl = ev.target.result;
+        const dataUrl  = ev.target.result;
         const commaIdx = dataUrl.indexOf(',');
         reqImages.push({
           dataUrl,
           base64: dataUrl.substring(commaIdx + 1),
-          mime: 'image/jpeg',
-          name: file.name.replace(/\.[^.]+$/, '.jpg')
+          mime:   'image/jpeg',
+          name:   file.name.replace(/\.[^.]+$/, '.jpg')
         });
         renderReqPreviews();
       };
@@ -503,20 +544,18 @@ function renderReqPreviews() {
   `).join('');
 }
 
-/* Upload a single image — handles non-JSON errors gracefully */
 async function uploadOneImage(imgObj) {
   const res = await fetch(LP_CONFIG.API_URL, {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      action: 'uploadRequestImage',
-      data: imgObj.base64,
+      action:   'uploadRequestImage',
+      data:     imgObj.base64,
       mimeType: imgObj.mime,
       filename: imgObj.name
     })
   });
 
-  /* Handle 413 or other errors that return HTML instead of JSON */
   const contentType = res.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
     const text = await res.text();
@@ -528,34 +567,31 @@ async function uploadOneImage(imgObj) {
   return data.url;
 }
 
-/* Validate Moroccan phone number */
 function validatePhone(phone) {
   const cleaned = phone.replace(/\s/g, '');
   return /^(06|07)\d{8}$/.test(cleaned);
 }
 
-/* MAIN: Submit request — upload images one by one, then send */
 async function submitRequest() {
-  const name = document.getElementById('req-name').value.trim();
+  const name  = document.getElementById('req-name').value.trim();
   const phone = document.getElementById('req-whatsapp').value.trim();
-  // const email = document.getElementById('req-email').value.trim();
-  const msg = document.getElementById('req-message').value.trim();
+  const msg   = document.getElementById('req-message').value.trim();
 
-  if (!name) { showReqError('Please enter your name'); return; }
+  if (!name)  { showReqError('Please enter your name'); return; }
   if (!phone) { showReqError('Please enter your WhatsApp number'); return; }
   if (!validatePhone(phone)) {
     showReqError('Please enter a valid number (e.g. 0682950546 — starts with 06 or 07, 10 digits)');
     return;
   }
 
-  const btn = document.getElementById('req-submit-btn');
+  const btn      = document.getElementById('req-submit-btn');
   const resultEl = document.getElementById('req-result');
-  btn.disabled = true;
+  btn.disabled   = true;
   btn.textContent = reqImages.length > 0 ? 'Uploading photos... 📸' : 'Sending... 💌';
   resultEl.innerHTML = '';
 
   try {
-    /* Step 1: Upload each image individually (same as admin flow) */
+    // Step 1: Upload each image to Drive → get back proxied URLs
     const uploadedUrls = [];
     for (let i = 0; i < reqImages.length; i++) {
       btn.textContent = `Uploading photo ${i + 1}/${reqImages.length}... 📸`;
@@ -563,18 +599,17 @@ async function submitRequest() {
       uploadedUrls.push(url);
     }
 
-    /* Step 2: Submit request with URLs only (tiny payload, no 413) */
+    // Step 2: Submit request with URLs array — GAS saves them to images column
     btn.textContent = 'Sending request... 💌';
     const res = await fetch(LP_CONFIG.API_URL, {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        action: 'submitRequest',
+        action:   'submitRequest',
         name,
         whatsapp: phone,
-        // email: email || '',
-        message: msg || '',
-        images: uploadedUrls
+        message:  msg || '',
+        images:   uploadedUrls   // ← array of Drive-proxied URLs
       })
     });
 
@@ -588,17 +623,15 @@ async function submitRequest() {
     if (data.error) throw new Error(data.error);
 
     resultEl.innerHTML = '<span style="color:#4ade80">✅ Request sent! We\'ll create your LP and send the link to your WhatsApp soon 💖</span>';
-    btn.textContent = 'Sent! 💖';
+    btn.textContent    = 'Sent! 💖';
 
-    /* Reset form */
     setTimeout(() => {
-      document.getElementById('req-name').value = '';
+      document.getElementById('req-name').value     = '';
       document.getElementById('req-whatsapp').value = '';
-      // document.getElementById('req-email').value = '';
-      document.getElementById('req-message').value = '';
+      document.getElementById('req-message').value  = '';
       reqImages = [];
       renderReqPreviews();
-      btn.disabled = false;
+      btn.disabled    = false;
       btn.textContent = 'Send Request 💌';
       resultEl.innerHTML = '';
     }, 4000);
@@ -606,7 +639,7 @@ async function submitRequest() {
   } catch (err) {
     console.error('Submit error:', err);
     resultEl.innerHTML = '<span style="color:#f87171">❌ Error: ' + err.message + '</span>';
-    btn.disabled = false;
+    btn.disabled    = false;
     btn.textContent = 'Send Request 💌';
   }
 }

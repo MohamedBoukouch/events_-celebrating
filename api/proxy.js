@@ -1,4 +1,6 @@
-// api/proxy.js — Vercel serverless function (CommonJS)
+// api/proxy.js — Vercel serverless function
+// MUST send POST as raw JSON — form-urlencoded destroys image arrays.
+
 const GAS_URL =
   'https://script.google.com/macros/s/AKfycbznOWf7cnikmA7lyCNLEkLXnhsRDu3nH-7V0lreqlGPZvKiLAXN1XiEVjWzR5Wae5KN/exec';
 
@@ -12,30 +14,25 @@ module.exports = async function handler(req, res) {
     let gasRes;
 
     if (req.method === 'GET') {
-      // GET: forward query params as-is
       const params = new URLSearchParams();
       Object.entries(req.query || {}).forEach(([k, v]) => params.set(k, String(v)));
       gasRes = await fetch(GAS_URL + '?' + params.toString(), { redirect: 'follow' });
-
     } else {
-      // POST: send as JSON so arrays (images) are never corrupted by form-encoding
-      const body = req.body || {};
+      // POST → raw JSON so arrays survive intact
       gasRes = await fetch(GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(req.body || {}),
         redirect: 'follow',
       });
     }
 
     const text = await gasRes.text();
     try {
-      const json = JSON.parse(text);
-      return res.status(200).json(json);
+      return res.status(200).json(JSON.parse(text));
     } catch (_) {
       return res.status(502).json({
-        error:
-          'GAS returned HTML instead of JSON. Re-deploy Apps Script as: Execute as ME + Anyone.',
+        error: 'GAS returned HTML. Re-deploy Apps Script: Execute as ME + Anyone.',
         preview: text.substring(0, 300),
       });
     }
