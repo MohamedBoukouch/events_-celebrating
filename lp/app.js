@@ -1,5 +1,5 @@
 /* =====================================================
-   BIRTHDAY LP PAGE — JavaScript (FINAL v6 — MUSIC FIX)
+   BIRTHDAY LP PAGE — JavaScript (FINAL v7 — START BUTTON)
    ===================================================== */
 
 const LP_CONFIG = {
@@ -7,7 +7,7 @@ const LP_CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════
-//  MUSIC — Autoplay immediately when LP loads
+//  MUSIC
 // ═══════════════════════════════════════════════════
 const MUSIC = {
   audio: null,
@@ -17,49 +17,44 @@ const MUSIC = {
     this.audio = new Audio('https://res.cloudinary.com/ds9v1rpfi/video/upload/v1777808988/love_zmgfmy.mp3');
     this.audio.loop = true;
     this.audio.volume = 0.6;
-    
-    // Try to play immediately on load
+    // Will be called right after the Start button click (user gesture already happened)
     this._tryPlay();
-    
-    // If blocked, retry on ANY user interaction anywhere
-    const tryOnInteraction = () => {
-      if (this.started) return;
-      this._tryPlay();
-    };
-    
-    // Listen to many events to catch first interaction
-    ['click', 'touchstart', 'touchend', 'mousedown', 'keydown', 'scroll', 'mousemove'].forEach(ev => {
-      document.addEventListener(ev, tryOnInteraction, { once: true, passive: true });
-    });
   },
-  
+
   _tryPlay() {
     if (!this.audio || this.started) return;
     const p = this.audio.play();
     if (p !== undefined) {
-      p.then(() => { 
-        this.started = true; 
-        console.log('Music started!'); 
-      }).catch((err) => { 
-        console.log('Music blocked:', err.message); 
+      p.then(() => {
+        this.started = true;
+        console.log('Music started!');
+      }).catch((err) => {
+        console.log('Music blocked:', err.message);
       });
     }
   }
 };
 
 // ═══════════════════════════════════════════════════
-//  PAGE INIT — Request page vs Generated LP
+//  PAGE INIT — deferred until Start button clicked
+//  _revealApp() is called from index.html after the
+//  start-screen fades out (inside handleStart()).
 // ═══════════════════════════════════════════════════
 const params = new URLSearchParams(window.location.search);
 const lpId = params.get('id');
 
-// Request page: NO music, NO countdown
-if (!lpId) {
-  document.getElementById('request-screen').style.display = 'flex';
-} else {
-  // Generated LP: show screen, load data
-  document.getElementById('lp-screen').style.display = 'block';
-  loadLP(lpId);
+// _revealApp is invoked by the Start button handler in index.html
+function _revealApp() {
+  if (!lpId) {
+    // Request page: show form, no music, no countdown
+    document.getElementById('request-screen').style.display = 'flex';
+  } else {
+    // Generated LP: show screen, start music, load data
+    document.getElementById('lp-screen').style.display = 'block';
+    // Music starts here — we are inside (or just after) a user gesture
+    MUSIC.init();
+    loadLP(lpId);
+  }
 }
 
 async function loadLP(id) {
@@ -82,13 +77,13 @@ function showError() {
 }
 
 // ═══════════════════════════════════════════════════
-//  LP INIT — Generated LP only
+//  LP INIT
 // ═══════════════════════════════════════════════════
 let BOOK_IMAGES = [];
 function initLP(lpData) {
   BOOK_IMAGES = lpData.images || [];
   const name = lpData.name || 'You';
-  const msg = lpData.custom_message || '';
+  const msg  = lpData.custom_message || '';
   document.getElementById('word-name').textContent = name.toUpperCase();
   if (msg) {
     document.getElementById('custom-msg-section').style.display = 'block';
@@ -96,29 +91,9 @@ function initLP(lpData) {
   }
   document.title = `Happy Birthday ${name}! 💖`;
   initStars(); initMatrix(); initHearts(); initConfetti();
-  
-  // Start music immediately (will autoplay or wait for first click)
-  MUSIC.init();
-  
-  // Start countdown immediately (don't wait for music)
+  // Music already started in _revealApp; countdown starts now
   setTimeout(runCountdown, 500);
 }
-
-// Wait for music to start before countdown
-// function waitForMusicThenCountdown() {
-//   const checkInterval = setInterval(() => {
-//     if (MUSIC.started) {
-//       clearInterval(checkInterval);
-//       runCountdown(); // Start countdown ONLY after music plays
-//     }
-//   }, 200);
-  
-//   // Fallback: if music blocked after 3s, start countdown anyway
-//   setTimeout(() => {
-//     clearInterval(checkInterval);
-//     if (!MUSIC.started) runCountdown();
-//   }, 3000);
-// }
 
 // ═══════════════════════════════════════════════════
 //  STARS
@@ -473,8 +448,7 @@ function closeHeartFormation() {
 }
 
 // ═══════════════════════════════════════════════════
-//  REQUEST FORM — PUBLIC (NO PASSWORD NEEDED)
-//  Same logic as admin: upload to Drive → save URL in Sheet
+//  REQUEST FORM
 // ═══════════════════════════════════════════════════
 let reqImages = [];
 
@@ -539,7 +513,6 @@ function renderReqPreviews() {
   `).join('');
 }
 
-// ✅ Upload ONE image to Drive via GAS — PUBLIC, NO adminPass
 async function uploadOneImage(imgObj) {
   const res = await fetch(LP_CONFIG.API_URL, {
     method: 'POST',
@@ -551,17 +524,15 @@ async function uploadOneImage(imgObj) {
       filename: imgObj.name
     })
   });
-
   const contentType = res.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
     const text = await res.text();
     throw new Error(`Server error ${res.status}: ${text.substring(0, 100)}`);
   }
-
   const data = await res.json();
   if (data.error) throw new Error(data.error);
   if (!data.url) throw new Error('No URL returned from upload');
-  return data.url; // e.g. https://events-celebrating.vercel.app/api/image?id=XXXXX
+  return data.url;
 }
 
 function validatePhone(phone) {
@@ -569,7 +540,6 @@ function validatePhone(phone) {
   return /^(06|07)\d{8}$/.test(cleaned);
 }
 
-// ✅ MAIN SUBMIT — uploads images to Drive first, then saves URLs to Sheet
 async function submitRequest() {
   const name  = document.getElementById('req-name').value.trim();
   const phone = document.getElementById('req-whatsapp').value.trim();
@@ -588,7 +558,6 @@ async function submitRequest() {
   resultEl.innerHTML = '';
 
   try {
-    // ── STEP 1: Upload each image to Drive, collect URLs ──
     const uploadedUrls = [];
     for (let i = 0; i < reqImages.length; i++) {
       btn.textContent = `Uploading photo ${i + 1}/${reqImages.length}... 📸`;
@@ -596,7 +565,6 @@ async function submitRequest() {
       uploadedUrls.push(url);
     }
 
-    // ── STEP 2: Save request + image URLs to Google Sheets ──
     btn.textContent = 'Sending request... 💌';
     const res = await fetch(LP_CONFIG.API_URL, {
       method: 'POST',
@@ -606,7 +574,7 @@ async function submitRequest() {
         name,
         whatsapp: phone,
         message:  msg || '',
-        images:   uploadedUrls   // ✅ array of Drive URLs saved to sheet
+        images:   uploadedUrls
       })
     });
 
@@ -623,9 +591,9 @@ async function submitRequest() {
     btn.textContent = 'Sent! 💖';
 
     setTimeout(() => {
-      document.getElementById('req-name').value      = '';
-      document.getElementById('req-whatsapp').value  = '';
-      document.getElementById('req-message').value   = '';
+      document.getElementById('req-name').value     = '';
+      document.getElementById('req-whatsapp').value = '';
+      document.getElementById('req-message').value  = '';
       reqImages = [];
       renderReqPreviews();
       btn.disabled    = false;

@@ -6,8 +6,200 @@
 <title>Happy Birthday 💖</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="lp/style.css"/>
+
+<style>
+/* ═══════════════════════════════════════════
+   START SCREEN OVERLAY
+═══════════════════════════════════════════ */
+#start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2rem;
+  background: radial-gradient(ellipse at 60% 40%, #1a0030 0%, #04010f 70%);
+  overflow: hidden;
+}
+
+/* animated bg particles */
+#start-screen .ss-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+#start-screen .ss-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+  animation: ssTwinkle var(--d, 3s) ease-in-out infinite;
+  animation-delay: var(--dl, 0s);
+}
+@keyframes ssTwinkle {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 0.8; transform: scale(1.2); }
+}
+
+/* floating hearts behind the card */
+#start-screen .ss-heart {
+  position: absolute;
+  font-size: 1.4rem;
+  opacity: 0;
+  animation: ssFloat var(--d, 8s) ease-in-out infinite;
+  animation-delay: var(--dl, 0s);
+  pointer-events: none;
+}
+@keyframes ssFloat {
+  0%   { opacity: 0; transform: translateY(0) scale(0.7); }
+  20%  { opacity: 0.6; }
+  80%  { opacity: 0.4; }
+  100% { opacity: 0; transform: translateY(-120px) scale(1.1); }
+}
+
+/* card */
+#start-screen .ss-card {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 3rem 2.5rem 2.5rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255, 45, 120, 0.25);
+  border-radius: 28px;
+  box-shadow: 0 0 60px rgba(255,45,120,0.15), 0 0 120px rgba(80,0,120,0.2);
+  backdrop-filter: blur(12px);
+  max-width: 360px;
+  width: 90%;
+  animation: ssCardIn 0.9s cubic-bezier(0.175,0.885,0.32,1.275) both;
+}
+@keyframes ssCardIn {
+  from { opacity: 0; transform: scale(0.7) translateY(30px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+#start-screen .ss-emoji {
+  font-size: 3.5rem;
+  display: block;
+  margin-bottom: 0.5rem;
+  animation: ssBounce 2s ease-in-out infinite;
+}
+@keyframes ssBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+#start-screen .ss-title {
+  font-family: 'Fredoka One', cursive;
+  font-size: 2rem;
+  color: #fff;
+  letter-spacing: 1px;
+  margin-bottom: 0.4rem;
+  line-height: 1.2;
+}
+
+#start-screen .ss-sub {
+  font-family: 'Nunito', sans-serif;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+/* THE BUTTON */
+#start-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.25rem;
+  letter-spacing: 1px;
+  color: #fff;
+  background: linear-gradient(135deg, #ff2d78, #c0006a);
+  border: none;
+  padding: 1rem 2.4rem;
+  border-radius: 60px;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 6px 30px rgba(255,45,120,0.55), 0 2px 8px rgba(0,0,0,0.4);
+  overflow: hidden;
+}
+#start-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+  border-radius: inherit;
+}
+#start-btn:hover {
+  transform: scale(1.06) translateY(-2px);
+  box-shadow: 0 10px 40px rgba(255,45,120,0.7), 0 2px 10px rgba(0,0,0,0.5);
+}
+#start-btn:active {
+  transform: scale(0.97) translateY(0);
+}
+
+/* pulse ring */
+#start-btn::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 64px;
+  border: 2px solid rgba(255,45,120,0.6);
+  animation: btnPulse 2s ease-out infinite;
+}
+@keyframes btnPulse {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* music note hint */
+#start-screen .ss-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.3);
+  margin-top: 1.2rem;
+}
+#start-screen .ss-hint span { font-size: 1rem; }
+
+/* fade out transition */
+#start-screen.fade-out {
+  animation: ssFadeOut 0.7s ease forwards;
+}
+@keyframes ssFadeOut {
+  to { opacity: 0; pointer-events: none; }
+}
+</style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════
+     START SCREEN — shown first, always
+═══════════════════════════════════════════ -->
+<div id="start-screen">
+  <div class="ss-stars" id="ss-stars"></div>
+
+  <div class="ss-card">
+    <span class="ss-emoji">🎂</span>
+    <div class="ss-title">A Special Message<br>Awaits You 💖</div>
+    <p class="ss-sub">Tap the button below to open<br>your birthday surprise with music!</p>
+
+    <button id="start-btn" onclick="handleStart()">
+      ▶ Start Experience
+    </button>
+
+    <div class="ss-hint">
+      <span>🎵</span> Music will play automatically
+    </div>
+  </div>
+</div>
+
 
 <!-- REQUEST FORM (shown when no ?id= present) -->
 <div id="request-screen" style="display:none">
@@ -27,10 +219,6 @@
         <input type="tel" id="req-whatsapp" placeholder="+212 6XX XXX XXX" class="req-input"/>
         <small style="color:rgba(255,255,255,.4);font-size:.75rem">We will send your LP link here</small>
       </div>
-      <!-- <div class="req-group">
-        <label>Email (optional)</label>
-        <input type="email" id="req-email" placeholder="your@email.com" class="req-input"/>
-      </div> -->
       <div class="req-group">
         <label>Message to admin (optional)</label>
         <textarea id="req-message" class="req-input" rows="3" placeholder="Any special requests?"></textarea>
@@ -79,19 +267,17 @@
       </div>
     </section>
 
-    
-
     <!-- PHOTO BOOK -->
     <section id="photobook">
       <h2 class="book-title">📖 Our Memories 📖</h2>
 
       <!-- Custom message -->
-    <div id="custom-msg-section" style="display:none">
-      <div class="custom-msg-wrap">
-        <div class="custom-msg-card" id="custom-msg-card"></div>
+      <div id="custom-msg-section" style="display:none">
+        <div class="custom-msg-wrap">
+          <div class="custom-msg-card" id="custom-msg-card"></div>
+        </div>
       </div>
-    </div>
-    
+
       <p class="book-hint">✨ Click the book to open it • Drag pages to turn ✨</p>
 
       <div class="book-closed-wrap" id="closed-book" onclick="openBook()">
@@ -149,8 +335,58 @@
   <p style="color:rgba(255,255,255,.5)">This birthday page doesn't exist or has been removed.</p>
 </div>
 
-<!-- QR lib + App Script -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="lp/app.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════
+   START SCREEN — stars + hearts animation
+═══════════════════════════════════════════ */
+(function buildStartScreen() {
+  const starsEl = document.getElementById('ss-stars');
+  // tiny twinkling stars
+  for (let i = 0; i < 120; i++) {
+    const s = document.createElement('div');
+    s.className = 'ss-star';
+    const sz = Math.random() * 2.5 + 0.5;
+    s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*3+1.5).toFixed(1)}s;--dl:${(Math.random()*4).toFixed(1)}s`;
+    starsEl.appendChild(s);
+  }
+  // floating hearts
+  const hearts = ['❤️','💕','💖','💗','✨','🌸'];
+  hearts.forEach((em, idx) => {
+    for (let j = 0; j < 3; j++) {
+      const h = document.createElement('div');
+      h.className = 'ss-heart';
+      h.textContent = em;
+      h.style.cssText = `left:${Math.random()*100}%;bottom:${Math.random()*30}%;--d:${(Math.random()*5+5).toFixed(1)}s;--dl:${(Math.random()*6).toFixed(1)}s`;
+      starsEl.appendChild(h);
+    }
+  });
+})();
+
+/* ═══════════════════════════════════════════
+   handleStart — called by the Start button
+═══════════════════════════════════════════ */
+function handleStart() {
+  const btn = document.getElementById('start-btn');
+  btn.textContent = '✨ Loading...';
+  btn.disabled = true;
+
+  // This click event is the user gesture — music can now play
+  MUSIC_UNLOCKED = true;
+
+  const screen = document.getElementById('start-screen');
+  screen.classList.add('fade-out');
+  setTimeout(() => {
+    screen.style.display = 'none';
+    // now reveal the right screen
+    _revealApp();
+  }, 700);
+}
+
+// flag read by app.js MUSIC object
+var MUSIC_UNLOCKED = false;
+</script>
 </body>
 </html>
