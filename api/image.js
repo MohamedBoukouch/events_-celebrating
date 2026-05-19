@@ -1,4 +1,6 @@
 // api/image.js — Vercel serverless function
+// Proxies Google Drive images to avoid 403 CORS errors
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
