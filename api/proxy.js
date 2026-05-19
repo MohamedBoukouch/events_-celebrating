@@ -1,8 +1,4 @@
-// api/proxy.js — Vercel serverless function
-// MUST send POST as raw JSON — form-urlencoded destroys image arrays.
-
-const GAS_URL =
-  'https://script.google.com/macros/s/AKfycbznOWf7cnikmA7lyCNLEkLXnhsRDu3nH-7V0lreqlGPZvKiLAXN1XiEVjWzR5Wae5KN/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbznOWf7cnikmA7lyCNLEkLXnhsRDu3nH-7V0lreqlGPZvKiLAXN1XiEVjWzR5Wae5KN/exec';
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,13 +8,11 @@ module.exports = async function handler(req, res) {
 
   try {
     let gasRes;
-
     if (req.method === 'GET') {
       const params = new URLSearchParams();
       Object.entries(req.query || {}).forEach(([k, v]) => params.set(k, String(v)));
       gasRes = await fetch(GAS_URL + '?' + params.toString(), { redirect: 'follow' });
     } else {
-      // POST → raw JSON so arrays survive intact
       gasRes = await fetch(GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -26,7 +20,6 @@ module.exports = async function handler(req, res) {
         redirect: 'follow',
       });
     }
-
     const text = await gasRes.text();
     try {
       return res.status(200).json(JSON.parse(text));
