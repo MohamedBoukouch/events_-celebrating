@@ -499,6 +499,7 @@ async function uploadOneImage(imgObj) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       action: 'uploadImage',
+      adminPass: "0000", // for security, only allow uploads with correct pass
       data: imgObj.base64,
       mimeType: imgObj.mime,
       filename: imgObj.name
