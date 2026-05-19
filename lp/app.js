@@ -7,35 +7,43 @@ const LP_CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════
-//  MUSIC
+//  MUSIC — Autoplay immediately when LP loads
 // ═══════════════════════════════════════════════════
 const MUSIC = {
   audio: null,
   started: false,
-  initAttempts: 0,
-  maxAttempts: 5,
 
   init() {
     this.audio = new Audio('https://res.cloudinary.com/ds9v1rpfi/video/upload/v1777808988/love_zmgfmy.mp3');
     this.audio.loop = true;
     this.audio.volume = 0.6;
-    this.audio.addEventListener('error', (e) => { console.error('Audio error:', e); });
+    
+    // Try to play immediately on load
     this._tryPlay();
-    const events = ['click', 'touchstart', 'keydown'];
-    const startOnInteraction = () => {
-      if (this.started) { this._cleanupListeners(startOnInteraction, events); return; }
+    
+    // If blocked, retry on ANY user interaction anywhere
+    const tryOnInteraction = () => {
+      if (this.started) return;
       this._tryPlay();
-      this.initAttempts++;
-      if (this.started || this.initAttempts >= this.maxAttempts)
-        this._cleanupListeners(startOnInteraction, events);
     };
-    events.forEach(ev => document.addEventListener(ev, startOnInteraction, { passive: true }));
+    
+    // Listen to many events to catch first interaction
+    ['click', 'touchstart', 'touchend', 'mousedown', 'keydown', 'scroll', 'mousemove'].forEach(ev => {
+      document.addEventListener(ev, tryOnInteraction, { once: true, passive: true });
+    });
   },
-  _cleanupListeners(fn, events) { events.forEach(ev => document.removeEventListener(ev, fn)); },
+  
   _tryPlay() {
     if (!this.audio || this.started) return;
     const p = this.audio.play();
-    if (p !== undefined) p.then(() => { this.started = true; }).catch(() => {});
+    if (p !== undefined) {
+      p.then(() => { 
+        this.started = true; 
+        console.log('Music started!'); 
+      }).catch((err) => { 
+        console.log('Music blocked:', err.message); 
+      });
+    }
   }
 };
 
@@ -77,7 +85,6 @@ function showError() {
 //  LP INIT — Generated LP only
 // ═══════════════════════════════════════════════════
 let BOOK_IMAGES = [];
-
 function initLP(lpData) {
   BOOK_IMAGES = lpData.images || [];
   const name = lpData.name || 'You';
@@ -90,26 +97,28 @@ function initLP(lpData) {
   document.title = `Happy Birthday ${name}! 💖`;
   initStars(); initMatrix(); initHearts(); initConfetti();
   
-  // Start music, then countdown only after music plays
+  // Start music immediately (will autoplay or wait for first click)
   MUSIC.init();
-  waitForMusicThenCountdown();
+  
+  // Start countdown immediately (don't wait for music)
+  setTimeout(runCountdown, 500);
 }
 
 // Wait for music to start before countdown
-function waitForMusicThenCountdown() {
-  const checkInterval = setInterval(() => {
-    if (MUSIC.started) {
-      clearInterval(checkInterval);
-      runCountdown(); // Start countdown ONLY after music plays
-    }
-  }, 200);
+// function waitForMusicThenCountdown() {
+//   const checkInterval = setInterval(() => {
+//     if (MUSIC.started) {
+//       clearInterval(checkInterval);
+//       runCountdown(); // Start countdown ONLY after music plays
+//     }
+//   }, 200);
   
-  // Fallback: if music blocked after 3s, start countdown anyway
-  setTimeout(() => {
-    clearInterval(checkInterval);
-    if (!MUSIC.started) runCountdown();
-  }, 3000);
-}
+//   // Fallback: if music blocked after 3s, start countdown anyway
+//   setTimeout(() => {
+//     clearInterval(checkInterval);
+//     if (!MUSIC.started) runCountdown();
+//   }, 3000);
+// }
 
 // ═══════════════════════════════════════════════════
 //  STARS
