@@ -1,5 +1,5 @@
 /* =====================================================
-   BIRTHDAY LP PAGE — JavaScript (FINAL v5 — FULLY FIXED)
+   BIRTHDAY LP PAGE — JavaScript (FINAL v6 — MUSIC FIX)
    ===================================================== */
 
 const LP_CONFIG = {
@@ -40,18 +40,18 @@ const MUSIC = {
 };
 
 // ═══════════════════════════════════════════════════
-//  PAGE INIT
+//  PAGE INIT — Request page vs Generated LP
 // ═══════════════════════════════════════════════════
 const params = new URLSearchParams(window.location.search);
 const lpId = params.get('id');
 
-MUSIC.init();
-
-if (lpId) {
+// Request page: NO music, NO countdown
+if (!lpId) {
+  document.getElementById('request-screen').style.display = 'flex';
+} else {
+  // Generated LP: show screen, load data
   document.getElementById('lp-screen').style.display = 'block';
   loadLP(lpId);
-} else {
-  document.getElementById('request-screen').style.display = 'flex';
 }
 
 async function loadLP(id) {
@@ -74,7 +74,7 @@ function showError() {
 }
 
 // ═══════════════════════════════════════════════════
-//  LP INIT
+//  LP INIT — Generated LP only
 // ═══════════════════════════════════════════════════
 let BOOK_IMAGES = [];
 
@@ -89,7 +89,26 @@ function initLP(lpData) {
   }
   document.title = `Happy Birthday ${name}! 💖`;
   initStars(); initMatrix(); initHearts(); initConfetti();
-  setTimeout(runCountdown, 400);
+  
+  // Start music, then countdown only after music plays
+  MUSIC.init();
+  waitForMusicThenCountdown();
+}
+
+// Wait for music to start before countdown
+function waitForMusicThenCountdown() {
+  const checkInterval = setInterval(() => {
+    if (MUSIC.started) {
+      clearInterval(checkInterval);
+      runCountdown(); // Start countdown ONLY after music plays
+    }
+  }, 200);
+  
+  // Fallback: if music blocked after 3s, start countdown anyway
+  setTimeout(() => {
+    clearInterval(checkInterval);
+    if (!MUSIC.started) runCountdown();
+  }, 3000);
 }
 
 // ═══════════════════════════════════════════════════
