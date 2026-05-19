@@ -1,600 +1,512 @@
 /* =====================================================
-   BIRTHDAY LP PAGE — JavaScript (FINAL CLEAN)
+   LP ADMIN DASHBOARD — JavaScript (FINAL CLEAN)
    ===================================================== */
 
-const LP_CONFIG = {
-  API_URL: 'https://events-celebrating.vercel.app/api/proxy'
+const CONFIG = {
+  API_URL:    'https://events-celebrating.vercel.app/api/proxy',
+  LP_BASE:    'https://events-celebrating.vercel.app/lp.html',
+  ADMIN_PASS: '0000'
 };
 
-// ── MUSIC ──────────────────────────────────────────────────
-const MUSIC = {
-  audio: null,
-  started: false,
-  initAttempts: 0,
-  maxAttempts: 5,
+let uploadedImages = [];
+let uploadedURLs   = [];
+let currentTab     = 'create';
+let adminPass      = '';
 
-  init() {
-    this.audio = new Audio('https://res.cloudinary.com/ds9v1rpfi/video/upload/v1777808988/love_zmgfmy.mp3');
-    this.audio.loop = true;
-    this.audio.volume = 0.6;
-    this.audio.addEventListener('error', (e) => { console.error('Audio error:', e); });
-    this._tryPlay();
-    const events = ['click', 'touchstart', 'keydown'];
-    const startOnInteraction = () => {
-      if (this.started) { this._cleanupListeners(startOnInteraction, events); return; }
-      this._tryPlay();
-      this.initAttempts++;
-      if (this.started || this.initAttempts >= this.maxAttempts)
-        this._cleanupListeners(startOnInteraction, events);
-    };
-    events.forEach(ev => document.addEventListener(ev, startOnInteraction, { passive: true }));
-  },
-  _cleanupListeners(fn, events) { events.forEach(ev => document.removeEventListener(ev, fn)); },
-  _tryPlay() {
-    if (!this.audio || this.started) return;
-    const p = this.audio.play();
-    if (p !== undefined) p.then(() => { this.started = true; }).catch(() => {});
-  }
-};
+// ── LOGIN ──────────────────────────────────────────────────
+document.getElementById('pass-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
 
-// ── PAGE INIT ─────────────────────────────────────────────
-const params = new URLSearchParams(window.location.search);
-const lpId = params.get('id');
-
-MUSIC.init();
-
-if (lpId) {
-  document.getElementById('lp-screen').style.display = 'block';
-  loadLP(lpId);
-} else {
-  document.getElementById('request-screen').style.display = 'flex';
+function doLogin() {
+  const val = document.getElementById('pass-input').value.trim();
+  if (!val) { showErr('Please enter your password'); return; }
+  adminPass = val;
+  document.getElementById('login-btn').innerHTML = '<span class="spinner"></span>';
+  apiGet({ action: 'getAllClients', pass: adminPass })
+    .then(data => {
+      if (data.error) {
+        showErr('Wrong password');
+        document.getElementById('login-btn').innerHTML = 'Enter →';
+        return;
+      }
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      loadClientsData(data.data || []);
+      loadRequestsData([]);
+    })
+    .catch(() => {
+      showErr('Connection error');
+      document.getElementById('login-btn').innerHTML = 'Enter →';
+    });
 }
 
-async function loadLP(id) {
-  try {
-    const url = new URL(LP_CONFIG.API_URL);
-    url.searchParams.set('action', 'getLP');
-    url.searchParams.set('id', id);
-    const res = await fetch(url.toString());
-    const data = await res.json();
-    if (data.error || !data.data) { showError(); return; }
-    initLP(data.data);
-  } catch(e) {
-    initLP({ name: 'You', images: [], custom_message: '' });
-  }
+function showErr(msg) { document.getElementById('login-err').textContent = msg; }
+
+function logout() {
+  adminPass = '';
+  document.getElementById('pass-input').value = '';
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('dashboard').classList.add('hidden');
 }
 
-function showError() {
-  document.getElementById('lp-screen').style.display = 'none';
-  document.getElementById('error-screen').style.display = 'flex';
+// ── API HELPERS ────────────────────────────────────────────
+async function apiGet(params) {
+  const url = new URL(CONFIG.API_URL);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
+  const res = await fetch(url.toString());
+  return res.json();
 }
 
-// ── LP INIT ───────────────────────────────────────────────
-let BOOK_IMAGES = [];
-
-function initLP(lpData) {
-  BOOK_IMAGES = lpData.images || [];
-  const name = lpData.name || 'You';
-  const msg = lpData.custom_message || '';
-  document.getElementById('word-name').textContent = name.toUpperCase();
-  if (msg) {
-    document.getElementById('custom-msg-section').style.display = 'block';
-    document.getElementById('custom-msg-card').textContent = msg;
-  }
-  document.title = `Happy Birthday ${name}! 💖`;
-  initStars(); initMatrix(); initHearts(); initConfetti();
-  setTimeout(runCountdown, 400);
-}
-
-// ── STARS ─────────────────────────────────────────────────
-function initStars() {
-  const starsEl = document.getElementById('stars');
-  for (let i = 0; i < 200; i++) {
-    const s = document.createElement('div');
-    s.className = 'star';
-    const sz = Math.random() * 3 + 1;
-    s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*3+1).toFixed(1)}s;animation-delay:${(Math.random()*3).toFixed(1)}s`;
-    starsEl.appendChild(s);
-  }
-}
-
-// ── MATRIX ────────────────────────────────────────────────
-function initMatrix() {
-  const cv = document.getElementById('matrix'), ctx = cv.getContext('2d');
-  function resize() { cv.width = window.innerWidth; cv.height = window.innerHeight; }
-  resize(); window.addEventListener('resize', resize);
-  const chars = 'ｦｧｨｩｪｫｬｭｮｯｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789♥♡❤';
-  const fs = 16; let cols, drops;
-  function init() { cols = Math.floor(cv.width / fs); drops = Array(cols).fill(1); }
-  init(); window.addEventListener('resize', init);
-  function draw() {
-    ctx.fillStyle = 'rgba(4,1,15,0.08)'; ctx.fillRect(0, 0, cv.width, cv.height);
-    for (let i = 0; i < drops.length; i++) {
-      const ch = chars[Math.floor(Math.random() * chars.length)];
-      ctx.fillStyle = Math.random() > .85 ? '#ff2d78' : `rgba(255,${Math.floor(Math.random()*60+20)},${Math.floor(Math.random()*80+40)},${0.5+Math.random()*0.5})`;
-      ctx.font = `${fs}px monospace`;
-      ctx.fillText(ch, i * fs, drops[i] * fs);
-      if (drops[i] * fs > cv.height && Math.random() > .975) drops[i] = 0;
-      drops[i]++;
-    }
-  }
-  setInterval(draw, 45);
-}
-
-// ── HEARTS ────────────────────────────────────────────────
-function initHearts() {
-  const c = document.getElementById('hearts-c');
-  ['❤️','💕','💖','💗','💓','💞','🌹','✨'].forEach(em => {
-    for (let j = 0; j < 2; j++) {
-      const h = document.createElement('div'); h.className = 'fheart';
-      h.style.cssText = `left:${Math.random()*100}%;--d:${(Math.random()*8+6).toFixed(1)}s;animation-delay:${(Math.random()*9).toFixed(1)}s;font-size:${(Math.random()*1.4+.7).toFixed(1)}rem`;
-      h.textContent = em; c.appendChild(h);
-    }
+async function apiPost(body) {
+  const res = await fetch(CONFIG.API_URL, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body)
   });
+  return res.json();
 }
 
-// ── CONFETTI ──────────────────────────────────────────────
-function initConfetti() {
-  const c = document.getElementById('conf-c');
-  ['#ff2d78','#ffd700','#4ade80','#38bdf8','#a855f7','#ff9f1a','#ff69b4'].forEach(col => {
-    for (let i = 0; i < 6; i++) {
-      const el = document.createElement('div'); el.className = 'conf';
-      el.style.cssText = `left:${Math.random()*100}%;background:${col};--d:${(Math.random()*4+3).toFixed(1)}s;--dl:${(Math.random()*6).toFixed(1)}s;width:${Math.floor(Math.random()*8+4)}px;height:${Math.floor(Math.random()*8+4)}px;border-radius:${Math.random()>.5?'50%':'2px'}`;
-      c.appendChild(el);
-    }
-  });
+// ── SIDEBAR & TABS ─────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
 }
 
-// ── COUNTDOWN + SEQUENCE ──────────────────────────────────
-function runCountdown() {
-  const overlay = document.getElementById('countdown-overlay');
-  const numEl = document.getElementById('countdown-num');
-  const steps = ['3','2','1','GO!'];
-  let i = 0;
-  function tick() {
-    numEl.textContent = steps[i];
-    numEl.style.animation = 'none'; void numEl.offsetWidth; numEl.style.animation = 'cpop .5s ease-out';
-    i++;
-    if (i < steps.length) { setTimeout(tick, 1000); }
-    else {
-      overlay.classList.add('hidden');
-      setTimeout(() => {
-        overlay.style.display = 'none';
-        document.getElementById('main-page').classList.add('visible');
-        startSequence();
-      }, 800);
-    }
-  }
-  tick();
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+  currentTab = tab;
+  document.getElementById('top-bar-title').textContent =
+    tab==='create' ? 'Create LP' : tab==='clients' ? 'All LPs' : 'Requests';
+  if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+  if (tab === 'clients')  refreshClients();
+  if (tab === 'requests') refreshRequests();
 }
 
-function startSequence() {
-  const wH = document.getElementById('word-happy');
-  const wB = document.getElementById('word-birthday');
-  const wN = document.getElementById('word-name');
-  const sL = document.getElementById('stage-love');
-  const sH = document.getElementById('stage-happy');
-  const pb = document.getElementById('photobook');
-  const ms = document.getElementById('custom-msg-section');
-
-  wH.classList.add('show');
-  setTimeout(() => { wH.classList.remove('show'); wH.classList.add('hide');
-    setTimeout(() => { wB.classList.add('show');
-      setTimeout(() => { wB.classList.remove('show'); wB.classList.add('hide');
-        setTimeout(() => { wN.classList.add('show');
-          setTimeout(() => { wN.classList.remove('show'); wN.classList.add('hide');
-            setTimeout(() => { sL.classList.add('show');
-              setTimeout(() => { sL.classList.remove('show'); sL.classList.add('hide');
-                setTimeout(() => { sH.classList.add('show');
-                  setTimeout(() => { sH.classList.remove('show'); sH.classList.add('hide');
-                    setTimeout(() => {
-                      pb.classList.add('visible');
-                      if (ms && ms.style.display !== 'none') ms.style.display = 'block';
-                      pb.scrollIntoView({ behavior: 'smooth' });
-                    }, 400);
-                  }, 2000);
-                }, 300);
-              }, 1000);
-            }, 300);
-          }, 1000);
-        }, 300);
-      }, 1000);
-    }, 300);
-  }, 1000);
+function refreshData() {
+  if (currentTab === 'clients')  refreshClients();
+  if (currentTab === 'requests') refreshRequests();
+  showToast('Refreshed', 'info');
 }
 
-/* ═══════════════════════════════════════════════════
-   BOOK ENGINE
-   ═══════════════════════════════════════════════════ */
-let bookOpen = false, currentSpread = 0, isAnimating = false, totalSpreads = 0;
-const closedBook = document.getElementById('closed-book');
-const openBookWrap = document.getElementById('open-book-wrap');
-const openBookEl = document.getElementById('open-book');
-const staticLeft = document.getElementById('static-left');
-const flipPage = document.getElementById('flip-page');
-const flipFront = document.getElementById('flip-front');
-const flipBack = document.getElementById('flip-back');
-const bookProgress = document.getElementById('book-progress');
-const arrowLeft = document.getElementById('arrow-left');
-const arrowRight = document.getElementById('arrow-right');
-
-let spreads = [];
-
-function buildSpreads() {
-  const s = [];
-  for (let i = 0; i < BOOK_IMAGES.length; i += 2)
-    s.push([BOOK_IMAGES[i] || null, BOOK_IMAGES[i+1] || null]);
-  s.push([null, null]);
-  return s;
-}
-
-function getSpreadHTML(img, side, idx, total) {
-  if (idx === total - 1 && !img) return `
-    <div class="last-page-content">
-      <div class="lp-heart">💖</div>
-      <div class="lp-title">The End 🌹</div>
-      <div class="lp-sub">Every moment with you<br>is a page worth keeping 💕</div>
-    </div>`;
-  if (img) return `<img src="${img}" alt="" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.outerHTML='<div class=phpage><div class=phtext>💖</div></div>'"/>`;
-  return `<div class="ph-page"><div class="ph-text">💖</div></div>`;
-}
-
-function renderSpread(idx) {
-  if (!spreads.length) return;
-  const spread = spreads[idx];
-  staticLeft.innerHTML = getSpreadHTML(spread[0], 'left', idx, spreads.length);
-  flipFront.innerHTML = getSpreadHTML(spread[1], 'right', idx, spreads.length);
-  arrowLeft.style.opacity = idx > 0 ? '0.4' : '0.1';
-  arrowRight.style.opacity = idx < spreads.length - 1 ? '0.4' : '0.1';
-  document.querySelectorAll('.prog-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
-}
-
-function buildProgressDots() {
-  bookProgress.innerHTML = '';
-  spreads.forEach((_, i) => {
-    const d = document.createElement('div');
-    d.className = 'prog-dot' + (i === 0 ? ' active' : '');
-    bookProgress.appendChild(d);
-  });
-}
-
-function openBook() {
-  if (bookOpen) return;
-  bookOpen = true;
-  spreads = buildSpreads(); totalSpreads = spreads.length; currentSpread = 0;
-  closedBook.style.transform = 'scale(0.8) rotateY(15deg)';
-  closedBook.style.opacity = '0'; closedBook.style.transition = 'all 0.4s ease';
-  setTimeout(() => {
-    closedBook.style.display = 'none'; openBookWrap.classList.add('active');
-    buildProgressDots(); renderSpread(0);
-    openBookEl.style.opacity = '0'; openBookEl.style.transform = 'scale(0.7) rotateX(10deg)';
-    openBookEl.style.transition = 'all 0.6s cubic-bezier(0.175,0.885,0.32,1.275)';
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      openBookEl.style.opacity = '1'; openBookEl.style.transform = 'scale(1) rotateX(0)';
-    }));
-  }, 400);
-}
-
-let dragStartX = 0, isDragging = false, dragProgress = 0;
-const FLIP_THRESHOLD = 80;
-
-function startDrag(e) {
-  if (isAnimating) return;
-  isDragging = true;
-  dragStartX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-  dragProgress = 0; flipPage.style.transition = 'none';
-  document.addEventListener('mousemove', onDrag);
-  document.addEventListener('mouseup', endDrag);
-  document.addEventListener('touchmove', onDrag, { passive: false });
-  document.addEventListener('touchend', endDrag);
-}
-function onDrag(e) {
-  if (!isDragging) return; if (e.cancelable) e.preventDefault();
-  const x = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-  dragProgress = dragStartX - x;
-  const pct = Math.max(0, Math.min(1, dragProgress / 200));
-  if (dragProgress > 0 && currentSpread < spreads.length - 1)
-    flipPage.style.transform = `rotateY(-${pct*180}deg)`;
-  else if (dragProgress < 0 && currentSpread > 0)
-    flipPage.style.transform = `rotateY(${Math.min(20, Math.abs(dragProgress)*.2)}deg)`;
-}
-function endDrag() {
-  if (!isDragging) return; isDragging = false;
-  document.removeEventListener('mousemove', onDrag); document.removeEventListener('mouseup', endDrag);
-  document.removeEventListener('touchmove', onDrag); document.removeEventListener('touchend', endDrag);
-  flipPage.style.transition = '';
-  if (dragProgress > FLIP_THRESHOLD && currentSpread < spreads.length - 1) flipForward();
-  else if (dragProgress < -FLIP_THRESHOLD && currentSpread > 0) flipBackward();
-  else { flipPage.style.transition = 'transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275)'; flipPage.style.transform = 'rotateY(0deg)'; }
-}
-
-function flipForward() {
-  if (isAnimating || currentSpread >= spreads.length - 1) return; isAnimating = true;
-  const next = spreads[currentSpread + 1];
-  flipBack.innerHTML = getSpreadHTML(next[0], 'left', currentSpread + 1, spreads.length);
-  flipBack.style.borderRadius = '12px 0 0 12px';
-  flipPage.style.transition = 'transform 0.65s cubic-bezier(0.645,0.045,0.355,1.000)';
-  flipPage.style.transform = 'rotateY(-180deg)';
-  setTimeout(() => {
-    currentSpread++; renderSpread(currentSpread);
-    flipPage.style.transition = 'none'; flipPage.style.transform = 'rotateY(0deg)'; isAnimating = false;
-    if (currentSpread === spreads.length - 1) setTimeout(() => closeBook(), 2500);
-  }, 650);
-}
-function flipBackward() {
-  if (isAnimating || currentSpread <= 0) return; isAnimating = true;
-  const prev = spreads[currentSpread - 1];
-  flipBack.innerHTML = getSpreadHTML(prev[1], 'right', currentSpread - 1, spreads.length);
-  flipBack.style.borderRadius = '0 12px 12px 0';
-  flipPage.style.transition = 'none'; flipPage.style.transform = 'rotateY(-180deg)';
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    flipPage.style.transition = 'transform 0.65s cubic-bezier(0.645,0.045,0.355,1.000)';
-    flipPage.style.transform = 'rotateY(0deg)';
-  }));
-  setTimeout(() => { currentSpread--; renderSpread(currentSpread); isAnimating = false; }, 650);
-}
-
-function closeBook() {
-  openBookEl.style.transition = 'all 0.7s cubic-bezier(0.6,-0.28,0.735,0.045)';
-  openBookEl.style.transform = 'scale(0.5) rotateX(20deg)'; openBookEl.style.opacity = '0';
-  setTimeout(() => {
-    openBookWrap.classList.remove('active'); closedBook.style.display = '';
-    closedBook.style.transform = 'scale(0.8) rotateY(-15deg)'; closedBook.style.opacity = '0';
-    closedBook.style.transition = 'all 0.5s cubic-bezier(0.175,0.885,0.32,1.275)';
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      closedBook.style.transform = 'scale(1) rotateY(0)'; closedBook.style.opacity = '1';
-    }));
-    openBookEl.style.transform = ''; openBookEl.style.opacity = '';
-    bookOpen = false; currentSpread = 0;
-    setTimeout(() => showHeartFormation(), 600);
-  }, 700);
-}
-
-if (openBookEl) {
-  openBookEl.addEventListener('click', function(e) {
-    if (isAnimating || isDragging) return;
-    const r = openBookEl.getBoundingClientRect();
-    const x = e.clientX - r.left; const hw = r.width / 2;
-    if (x > hw * 1.3) flipForward();
-    else if (x < hw * .7 && currentSpread > 0) flipBackward();
-  });
-}
-if (staticLeft) {
-  staticLeft.addEventListener('touchstart', startDrag);
-  staticLeft.addEventListener('mousedown', startDrag);
-}
-
-/* ── HEART FORMATION ─────────────────────────────── */
-function showHeartFormation() {
-  const hf = document.getElementById('heart-formation');
-  const canvas = document.getElementById('heart-canvas');
-  hf.classList.add('show');
-  const hfStars = document.getElementById('hf-stars');
-  hfStars.innerHTML = '';
-  for (let i = 0; i < 80; i++) {
-    const s = document.createElement('div'); s.className = 'star';
-    const sz = Math.random() * 2 + 0.5;
-    s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*3+1).toFixed(1)}s`;
-    hfStars.appendChild(s);
-  }
-  canvas.querySelectorAll('.hf-card').forEach(c => c.remove());
-  const imgs = BOOK_IMAGES; if (!imgs.length) return;
-  const vmin = Math.min(window.innerWidth * 0.90, window.innerHeight * 0.72, 520);
-  const SIZE = vmin;
-  canvas.style.width = SIZE + 'px'; canvas.style.height = SIZE + 'px';
-  function hXY(t) { return { x: 16 * Math.pow(Math.sin(t), 3), y: -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) }; }
-  const NUM = 14; const rawPts = []; const tangents = [];
-  for (let i = 0; i < NUM; i++) {
-    const t = (i / NUM) * 2 * Math.PI; rawPts.push(hXY(t));
-    const dt = 0.01, a = hXY(t), b = hXY(t + dt);
-    tangents.push(Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI);
-  }
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  rawPts.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
-  const pad = SIZE * .12, scX = (SIZE-pad*2)/(maxX-minX), scY = (SIZE-pad*2)/(maxY-minY), sc = Math.min(scX, scY);
-  const oX = pad + ((SIZE-pad*2)-(maxX-minX)*sc)/2, oY = pad + ((SIZE-pad*2)-(maxY-minY)*sc)/2;
-  const toC = p => ({ x: oX + (p.x-minX)*sc, y: oY + (p.y-minY)*sc });
-  const CW = SIZE*0.26, CH = SIZE*0.28, cPad = SIZE*0.018, cBot = SIZE*0.06, iW = CW-cPad*2, iH = CH-cPad-cBot;
-  const svgEl = document.getElementById('hf-heart-glow');
-  const pathEl = document.getElementById('hf-heart-path');
-  svgEl.setAttribute('viewBox', `0 0 ${SIZE} ${SIZE}`);
-  const svgD = [];
-  for (let i = 0; i <= 300; i++) {
-    const t = (i/300)*2*Math.PI; const p = toC(hXY(t));
-    svgD.push(i === 0 ? `M${p.x.toFixed(1)},${p.y.toFixed(1)}` : `L${p.x.toFixed(1)},${p.y.toFixed(1)}`);
-  }
-  pathEl.setAttribute('d', svgD.join('') + 'Z');
-  setTimeout(() => svgEl.classList.add('visible'), 400);
-  rawPts.forEach((rp, i) => {
-    const cp = toC(rp); const img = imgs[i % imgs.length];
-    const tilt = tangents[i] + (Math.random() - .5) * 25;
-    const card = document.createElement('div'); card.className = 'hf-card';
-    card.style.cssText = `width:${CW}px;height:${CH}px;left:${cp.x-CW/2}px;top:${cp.y-CH/2}px;padding:${cPad}px ${cPad}px ${cBot}px ${cPad}px;transform:scale(0) rotate(${tilt}deg);opacity:0;`;
-    card.innerHTML = `<img src="${img}" alt="" style="width:${iW}px;height:${iH}px;object-fit:cover;display:block;border-radius:2px"/>`;
-    canvas.appendChild(card);
-    setTimeout(() => {
-      card.style.transition = 'opacity .4s ease, transform .55s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow .3s';
-      card.style.transform = `scale(1) rotate(${tilt}deg)`; card.style.opacity = '1';
-    }, i * 100);
-  });
-}
-
-function closeHeartFormation() {
-  const hf = document.getElementById('heart-formation');
-  document.getElementById('hf-heart-glow').classList.remove('visible');
-  hf.style.transition = 'opacity 0.5s'; hf.style.opacity = '0';
-  setTimeout(() => { hf.classList.remove('show'); hf.style.opacity = ''; hf.style.transition = ''; }, 500);
-}
-
-/* ═══════════════════════════════════════════════════
-   REQUEST FORM
-   ═══════════════════════════════════════════════════ */
-let reqImages = [];
-
-function compressImage(file, maxWidth = 1200, quality = 0.8) {
-  return new Promise((resolve, reject) => {
+// ── IMAGE UPLOAD (Create LP) ───────────────────────────────
+function handleImages(e) {
+  const files   = Array.from(e.target.files);
+  const allowed = 6 - uploadedImages.length - uploadedURLs.length;
+  files.slice(0, allowed).forEach(file => {
+    if (file.size > 5*1024*1024) { showToast('Image too large (max 5MB)', 'error'); return; }
     const reader = new FileReader();
-    reader.onload = function(e) {
-      const img = new Image();
-      img.onload = function() {
-        let width = img.width, height = img.height;
-        if (width > maxWidth) { height = Math.round(height * (maxWidth / width)); width = maxWidth; }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          if (!blob) { reject(new Error('Compression failed')); return; }
-          resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
-        }, 'image/jpeg', quality);
-      };
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = e.target.result;
+    reader.onload = ev => {
+      const dataUrl = ev.target.result;
+      uploadedImages.push({ base64: dataUrl.split(',')[1], mime: file.type, name: file.name, preview: dataUrl });
+      renderPreviews();
     };
-    reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsDataURL(file);
-  });
-}
-
-function handleReqImages(e) {
-  const files = Array.from(e.target.files || []);
-  const allowed = 6 - reqImages.length;
-  files.slice(0, allowed).forEach(async (file) => {
-    if (file.size > 5 * 1024 * 1024) { alert('Image too large (max 5MB)'); return; }
-    try {
-      const compressedFile = await compressImage(file, 1200, 0.8);
-      const r = new FileReader();
-      r.onload = ev => {
-        const dataUrl = ev.target.result;
-        reqImages.push({
-          dataUrl,
-          base64: dataUrl.substring(dataUrl.indexOf(',') + 1),
-          mime: 'image/jpeg',
-          name: file.name.replace(/\.[^.]+$/, '.jpg')
-        });
-        renderReqPreviews();
-      };
-      r.readAsDataURL(compressedFile);
-    } catch (err) {
-      console.error('Compression error:', err);
-      alert('Failed to process image. Please try another.');
-    }
   });
   e.target.value = '';
 }
 
-function renderReqPreviews() {
-  const wrap = document.getElementById('req-previews');
-  wrap.innerHTML = reqImages.map((img, i) => `
-    <div class="req-thumb">
-      <img src="${img.dataUrl}" alt=""/>
-      <div class="req-thumb-del" onclick="reqImages.splice(${i},1);renderReqPreviews()">✕</div>
-    </div>
-  `).join('');
-}
-
-// ✅ Upload ONE image to Drive via GAS — returns the hosted URL
-async function uploadOneImage(imgObj) {
-  const res = await fetch(LP_CONFIG.API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      action: 'uploadImage',
-      adminPass: "0000", // for security, only allow uploads with correct pass
-      data: imgObj.base64,
-      mimeType: imgObj.mime,
-      filename: imgObj.name
-    })
+function renderPreviews() {
+  const wrap = document.getElementById('image-previews');
+  wrap.innerHTML = '';
+  const all = [
+    ...uploadedURLs.map(u => ({ type:'url', url:u })),
+    ...uploadedImages.map(i => ({ type:'local', url:i.preview }))
+  ];
+  all.forEach((item,i) => {
+    const div = document.createElement('div'); div.className = 'img-thumb';
+    div.innerHTML = `<img src="${item.url}" alt=""/>
+      <button class="img-thumb-del" onclick="removeImage(${i},'${item.type}')">✕</button>`;
+    wrap.appendChild(div);
   });
-
-  const contentType = res.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
-    const text = await res.text();
-    throw new Error(`Server error ${res.status}: ${text.substring(0, 100)}`);
-  }
-
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  if (!data.url) throw new Error('No URL returned from upload');
-  return data.url; // e.g. https://events-celebrating.vercel.app/api/image?id=XXXXX
 }
 
-function validatePhone(phone) {
-  const cleaned = phone.replace(/\s/g, '');
-  return /^(06|07)\d{8}$/.test(cleaned);
+function removeImage(idx, type) {
+  if (type==='url') uploadedURLs.splice(idx,1);
+  else uploadedImages.splice(idx-uploadedURLs.length,1);
+  renderPreviews();
 }
 
-// ✅ MAIN SUBMIT — uploads images first, collects URLs, then saves everything to sheet
-async function submitRequest() {
-  const name  = document.getElementById('req-name').value.trim();
-  const phone = document.getElementById('req-whatsapp').value.trim();
-  const msg   = document.getElementById('req-message').value.trim();
-
-  if (!name)  { showReqError('Please enter your name'); return; }
-  if (!phone) { showReqError('Please enter your WhatsApp number'); return; }
-  if (!validatePhone(phone)) {
-    showReqError('Please enter a valid number (e.g. 0682950546 — starts with 06 or 07, 10 digits)');
-    return;
+async function uploadAllImages() {
+  const results = [];
+  for (const img of uploadedImages) {
+    const res = await apiPost({
+      action:   'uploadImage',
+      pass:     adminPass,
+      data:     img.base64,
+      mimeType: img.mime,
+      filename: img.name
+    });
+    if (res.error) throw new Error(res.error);
+    results.push(res.url);
   }
+  return results;
+}
 
-  const btn      = document.getElementById('req-submit-btn');
-  const resultEl = document.getElementById('req-result');
-  btn.disabled   = true;
-  resultEl.innerHTML = '';
+// ── CREATE LP ──────────────────────────────────────────────
+async function createLP() {
+  const name = document.getElementById('c-name').value.trim();
+  const msg  = document.getElementById('c-message').value.trim();
+  if (!name) { showToast('Please enter a name', 'error'); return; }
+
+  const btn = document.getElementById('create-btn');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner"></span> Uploading images...';
 
   try {
-    // ── STEP 1: Upload each image to Drive, collect URLs ──
-    const uploadedUrls = [];
-    for (let i = 0; i < reqImages.length; i++) {
-      btn.textContent = `Uploading photo ${i + 1}/${reqImages.length}... 📸`;
-      const url = await uploadOneImage(reqImages[i]);
-      uploadedUrls.push(url);
+    if (uploadedImages.length > 0) {
+      const newURLs  = await uploadAllImages();
+      uploadedURLs   = [...uploadedURLs, ...newURLs];
+      uploadedImages = [];
     }
 
-    // ── STEP 2: Save request + image URLs to Google Sheets ──
-    btn.textContent = 'Sending request... 💌';
-    const res = await fetch(LP_CONFIG.API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action:   'submitRequest',
-        name,
-        whatsapp: phone,
-        message:  msg || '',
-        images:   uploadedUrls   // ✅ array of Drive URLs saved to sheet
-      })
+    btn.innerHTML = '<span class="spinner"></span> Creating LP...';
+    const res = await apiPost({
+      action: 'createLP',
+      pass:   adminPass,
+      name,
+      images: uploadedURLs,
+      custom_message: msg
     });
 
-    const contentType = res.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const text = await res.text();
-      throw new Error(`Server error ${res.status}: ${text.substring(0, 100)}`);
-    }
-
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-
-    resultEl.innerHTML = '<span style="color:#4ade80">✅ Request sent! We\'ll create your LP and send the link to your WhatsApp soon 💖</span>';
-    btn.textContent = 'Sent! 💖';
-
-    setTimeout(() => {
-      document.getElementById('req-name').value      = '';
-      document.getElementById('req-whatsapp').value  = '';
-      document.getElementById('req-message').value   = '';
-      reqImages = [];
-      renderReqPreviews();
-      btn.disabled    = false;
-      btn.textContent = 'Send Request 💌';
-      resultEl.innerHTML = '';
-    }, 4000);
+    if (res.error) throw new Error(res.error);
+    const lpUrl = `${CONFIG.LP_BASE}?id=${res.id}`;
+    showResult(lpUrl);
+    showToast('LP created! 🎉', 'success');
+    document.getElementById('c-name').value    = '';
+    document.getElementById('c-message').value = '';
+    uploadedImages = []; uploadedURLs = [];
+    renderPreviews();
 
   } catch (err) {
-    console.error('Submit error:', err);
-    resultEl.innerHTML = `<span style="color:#f87171">❌ Error: ${err.message}</span>`;
-    btn.disabled    = false;
-    btn.textContent = 'Send Request 💌';
+    showToast('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled  = false;
+    btn.innerHTML = '<span>✨ Generate LP</span>';
   }
 }
 
-function showReqError(msg) {
-  document.getElementById('req-result').innerHTML = `<span style="color:#f87171">⚠️ ${msg}</span>`;
+function showResult(url) {
+  document.getElementById('result-card').style.display = 'block';
+  document.getElementById('result-link').value = url;
+  const qrWrap = document.getElementById('qr-wrap');
+  qrWrap.innerHTML = '';
+  new QRCode(qrWrap, { text:url, width:160, height:160, colorDark:'#000', colorLight:'#fff', correctLevel:QRCode.CorrectLevel.H });
+}
+
+function downloadQR() {
+  const canvas = document.querySelector('#qr-wrap canvas');
+  if (!canvas) { showToast('QR not ready','error'); return; }
+  const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'lp-qr.png'; a.click();
+}
+
+function shareWA() {
+  const link = document.getElementById('result-link').value;
+  window.open(`https://wa.me/?text=${encodeURIComponent('🎂 Your Birthday LP is ready! 💖 '+link)}`, '_blank');
+}
+
+// ── CLIENTS TABLE ──────────────────────────────────────────
+async function refreshClients() {
+  document.getElementById('clients-tbody').innerHTML = '<tr><td colspan="6" class="loading-row">Loading...</td></tr>';
+  try {
+    const data = await apiGet({ action:'getAllClients', pass:adminPass });
+    loadClientsData(data.data || []);
+  } catch (err) {
+    document.getElementById('clients-tbody').innerHTML = `<tr><td colspan="6" class="loading-row">Error: ${err.message}</td></tr>`;
+  }
+}
+
+function loadClientsData(rows) {
+  rows = [...rows].sort((a,b) => safeDate(b.created_at) - safeDate(a.created_at));
+  document.getElementById('badge-clients').textContent = rows.length;
+  const tbody = document.getElementById('clients-tbody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="loading-row">No LPs yet</td></tr>'; return; }
+
+  tbody.innerHTML = rows.map(r => {
+    const imgs     = parseImages(r.images);
+    const idSafe   = esc(r.id||'');
+    const nameSafe = esc(r.name||'');
+    const msgSafe  = esc(getMessageText(r));
+    const status   = r.status||'active';
+    const dateStr  = formatDate(r.created_at);
+    const msgDisplay = msgSafe
+      ? (msgSafe.length>60 ? msgSafe.substring(0,60)+'…' : msgSafe)
+      : '<span style="color:var(--text-dim)">—</span>';
+
+    return `<tr>
+      <td><strong>${nameSafe}</strong></td>
+      <td style="color:var(--text-dim);font-size:.82rem;white-space:nowrap">${dateStr}</td>
+      <td><span class="status-badge status-${status}">${status}</span></td>
+      <td><div class="table-img-row">
+        ${imgs.slice(0,3).map(u=>`<img class="table-thumb" src="${u}" onerror="this.style.display='none'" alt=""/>`).join('')}
+        ${imgs.length>3?`<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length-3}</span>`:''}
+      </div></td>
+      <td style="max-width:200px;font-size:.82rem;color:var(--text-dim)">${msgDisplay}</td>
+      <td><div class="action-btns">
+        <button class="action-btn" onclick="viewQR('${idSafe}','${nameSafe}')">🔗 QR</button>
+        <button class="action-btn" onclick="openEdit('${idSafe}','${nameSafe}','${msgSafe}','${status}')">✏️ Edit</button>
+        <button class="action-btn danger" onclick="deleteLP('${idSafe}')">🗑 Delete</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── REQUESTS TABLE ─────────────────────────────────────────
+async function refreshRequests() {
+  document.getElementById('requests-tbody').innerHTML = '<tr><td colspan="7" class="loading-row">Loading...</td></tr>';
+  try {
+    const data = await apiGet({ action:'getAllRequests', pass:adminPass });
+    loadRequestsData(data.data || []);
+  } catch (err) {
+    document.getElementById('requests-tbody').innerHTML = `<tr><td colspan="7" class="loading-row">Error: ${err.message}</td></tr>`;
+  }
+}
+
+function loadRequestsData(rows) {
+  rows = [...rows].sort((a,b) => safeDate(b.requested_at||b.created_at) - safeDate(a.requested_at||a.created_at));
+  const pending = rows.filter(r => r.status==='pending').length;
+  document.getElementById('badge-requests').textContent = pending||'';
+  const tbody = document.getElementById('requests-tbody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="loading-row">No requests yet</td></tr>'; return; }
+
+  tbody.innerHTML = rows.map(r => {
+    const imgs     = parseImages(r.images);
+    const idSafe   = esc(r.id||'');
+    const nameSafe = esc(r.name||'');
+    const waSafe   = esc(r.whatsapp||'');
+    const lpIdSafe = esc(r.lp_id||'');
+    const status   = r.status||'pending';
+    const dateStr  = formatDate(r.requested_at||r.created_at||''); // ✅ FIXED
+
+    const waDisplay = r.whatsapp
+      ? `<a href="${buildWALink(r.whatsapp)}" target="_blank" style="color:var(--success);text-decoration:none;white-space:nowrap">📱 ${esc(r.whatsapp)}</a>`
+      : '—';
+
+    const msgText    = getMessageText(r);
+    const msgDisplay = msgText
+      ? (msgText.length>80 ? esc(msgText.substring(0,80))+'…' : esc(msgText))
+      : '<span style="color:var(--text-dim)">No message</span>';
+
+    const imgHtml = imgs.length>0
+      ? imgs.slice(0,3).map(u=>
+          `<img class="table-thumb" src="${u}"
+            onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22><rect width=%2240%22 height=%2240%22 fill=%22%23ff2d78%22/><text x=%2220%22 y=%2225%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22white%22>📷</text></svg>'"
+            alt=""/>`
+        ).join('')+(imgs.length>3?`<span style="font-size:.75rem;color:var(--text-dim);align-self:center">+${imgs.length-3}</span>`:'')
+      : '<span style="font-size:.8rem;color:var(--text-dim)">No images</span>';
+
+    let actionBtns = '';
+    if (status==='pending') {
+      actionBtns=`
+        <button class="action-btn success" data-approve-id="${idSafe}" data-approve-wa="${waSafe}" data-approve-name="${nameSafe}" onclick="handleApprove(this)">✅ Approve</button>
+        <button class="action-btn danger"  data-reject-id="${idSafe}" onclick="handleReject(this)">✕ Reject</button>`;
+    } else if (status==='approved') {
+      actionBtns=`
+        <button class="action-btn" data-qr-id="${lpIdSafe}" data-qr-name="${nameSafe}" onclick="handleViewQR(this)">🔗 QR</button>
+        <button class="action-btn whatsapp-btn" data-share-lp="${lpIdSafe}" data-share-wa="${waSafe}" data-share-name="${nameSafe}" onclick="handleSendWA(this)">📱 Send WA</button>`;
+    }
+
+    return `<tr>
+      <td><strong>${nameSafe}</strong></td>
+      <td>${waDisplay}</td>
+      <td><div class="table-img-row">${imgHtml}</div></td>
+      <td style="max-width:180px;font-size:.85rem;color:var(--text-dim)">${msgDisplay}</td>
+      <td style="color:var(--text-dim);font-size:.82rem;white-space:nowrap">${dateStr}</td>
+      <td><span class="status-badge status-${status}">${status}</span></td>
+      <td><div class="action-btns">${actionBtns}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── HELPERS ────────────────────────────────────────────────
+function getMessageText(row) {
+  if (!row) return '';
+  for (const f of ['message','custom_message','msg','notes','description','text','comment','note']) {
+    if (typeof row[f]==='string' && row[f].trim()) return row[f].trim();
+  }
+  return '';
+}
+
+function parseImages(field) {
+  if (!field) return [];
+  if (Array.isArray(field)) return field.filter(Boolean);
+  if (typeof field==='string') {
+    if (!field.trim()) return [];
+    try { const p=JSON.parse(field); if (Array.isArray(p)) return p.filter(Boolean); } catch(e) {}
+    return field.split(',').map(s=>s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function buildWALink(phone, message) {
+  if (!phone) return 'https://wa.me/';
+  let clean = String(phone).replace(/[\s\-\.]/g,'');
+  if (clean.startsWith('0'))  clean = '212'+clean.substring(1);
+  if (clean.startsWith('+'))  clean = clean.substring(1);
+  const url = 'https://wa.me/'+clean;
+  return message ? url+'?text='+encodeURIComponent(message) : url;
+}
+
+function handleApprove(btn) { approveRequest(btn.dataset.approveId, btn.dataset.approveWa, btn.dataset.approveName); }
+function handleReject(btn)  { rejectRequest(btn.dataset.rejectId); }
+function handleViewQR(btn)  { viewQR(btn.dataset.qrId, btn.dataset.qrName); }
+function handleSendWA(btn)  { openShareModal(btn.dataset.shareLp, btn.dataset.shareWa, btn.dataset.shareName); }
+
+// ── APPROVE / REJECT ───────────────────────────────────────
+async function approveRequest(id, whatsapp, name) {
+  if (!confirm(`Approve request for ${name} and create their LP?`)) return;
+  try {
+    const res = await apiPost({ action:'updateRequestStatus', pass:adminPass, id, status:'approved' });
+    if (res.error) { showToast('Error: '+res.error,'error'); return; }
+    showToast('Approved! LP created 🎉','success');
+    await refreshRequests();
+    if (res.lpId) openShareModal(res.lpId, whatsapp, name);
+  } catch (err) { showToast('Error: '+err.message,'error'); }
+}
+
+async function rejectRequest(id) {
+  if (!confirm('Reject this request?')) return;
+  try {
+    await apiPost({ action:'updateRequestStatus', pass:adminPass, id, status:'rejected' });
+    showToast('Request rejected','info');
+    refreshRequests();
+  } catch (err) { showToast('Error: '+err.message,'error'); }
+}
+
+// ── SHARE MODAL ────────────────────────────────────────────
+function openShareModal(lpId, whatsapp, name) {
+  if (!lpId) { showToast('LP ID missing','error'); return; }
+  const url = `${CONFIG.LP_BASE}?id=${lpId}`;
+  document.getElementById('share-modal-name').textContent = `LP for ${name}`;
+  document.getElementById('share-modal-link').value = url;
+  const qrWrap = document.getElementById('share-modal-qr');
+  qrWrap.innerHTML = '';
+  new QRCode(qrWrap, { text:url, width:160, height:160, colorDark:'#000', colorLight:'#fff', correctLevel:QRCode.CorrectLevel.H });
+  const dlBtn = document.getElementById('share-modal-dl-btn');
+  dlBtn.style.display = 'none';
+  setTimeout(() => {
+    const canvas = qrWrap.querySelector('canvas');
+    if (canvas) {
+      dlBtn.style.display = '';
+      dlBtn.onclick = () => { const a=document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download=`lp-qr-${lpId}.png`; a.click(); };
+    }
+  }, 400);
+  const waMsg = `🎂 Joyeux anniversaire ${name}! 💖\n\nTon LP est prêt ici :\n${url}\n\nProfite bien de ta journée spéciale! 🎉`;
+  const waBtn = document.getElementById('share-modal-wa-btn');
+  waBtn.style.display = '';
+  waBtn.onclick = () => window.open(buildWALink(whatsapp, waMsg), '_blank');
+  document.getElementById('share-modal').style.display = 'flex';
+}
+
+// ── EDIT MODAL ─────────────────────────────────────────────
+function openEdit(id, name, msg, status) {
+  document.getElementById('edit-id').value      = id;
+  document.getElementById('edit-name').value    = name;
+  document.getElementById('edit-message').value = msg;
+  document.getElementById('edit-status').value  = status;
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+
+async function saveEdit() {
+  const id = document.getElementById('edit-id').value;
+  try {
+    const res = await apiPost({
+      action:'updateLP', pass:adminPass, id,
+      name:           document.getElementById('edit-name').value,
+      custom_message: document.getElementById('edit-message').value,
+      status:         document.getElementById('edit-status').value
+    });
+    if (res.error) { showToast('Error: '+res.error,'error'); return; }
+    showToast('Saved! ✓','success');
+    document.getElementById('edit-modal').style.display = 'none';
+    refreshClients();
+  } catch (err) { showToast('Error: '+err.message,'error'); }
+}
+
+async function deleteLP(id) {
+  if (!confirm('Delete this LP permanently?')) return;
+  try {
+    const res = await apiGet({ action:'deleteClient', pass:adminPass, id });
+    if (res.error) { showToast('Error: '+res.error,'error'); return; }
+    showToast('Deleted','info');
+    refreshClients();
+  } catch (err) { showToast('Error: '+err.message,'error'); }
+}
+
+// ── QR MODAL ───────────────────────────────────────────────
+function viewQR(id, name) {
+  if (!id) { showToast('LP ID not available','error'); return; }
+  const url = `${CONFIG.LP_BASE}?id=${id}`;
+  document.getElementById('modal-link').value = url;
+  const wrap = document.getElementById('modal-qr-wrap');
+  wrap.innerHTML = '';
+  new QRCode(wrap, { text:url, width:180, height:180, colorDark:'#000', colorLight:'#fff', correctLevel:QRCode.CorrectLevel.H });
+  document.getElementById('modal-wa-btn').onclick = () =>
+    window.open(`https://wa.me/?text=${encodeURIComponent('🎂 Happy Birthday LP for '+name+'! 💖 '+url)}`, '_blank');
+  const checkCanvas = setInterval(() => {
+    const dlCanvas = wrap.querySelector('canvas');
+    if (dlCanvas) {
+      clearInterval(checkCanvas);
+      document.getElementById('modal-dl-btn').onclick = () => {
+        const a=document.createElement('a'); a.href=dlCanvas.toDataURL('image/png'); a.download=`lp-qr-${id}.png`; a.click();
+      };
+    }
+  }, 100);
+  document.getElementById('qr-modal').style.display = 'flex';
+}
+
+// ── UTILS ──────────────────────────────────────────────────
+function closeModal(e) {
+  if (e.target.classList.contains('modal-overlay')) e.target.style.display = 'none';
+}
+
+function copyText(inputId) {
+  const el = document.getElementById(inputId);
+  el.select(); document.execCommand('copy');
+  showToast('Copied! ✓','success');
+}
+
+function esc(str) {
+  return String(str||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function safeDate(str) {
+  if (!str) return new Date(0);
+  if (typeof str==='number') return new Date(new Date(1899,11,30).getTime()+str*864e5);
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) return d;
+  const parts = String(str).split(/[\/\-\.]/);
+  if (parts.length===3) { const alt=new Date(+parts[2],+parts[1]-1,+parts[0]); if (!isNaN(alt.getTime())) return alt; }
+  return new Date(0);
+}
+
+function formatDate(str) {
+  if (!str) return '—';
+  const d = safeDate(str);
+  if (d.getTime()===0) return String(str);
+  try { return d.toLocaleDateString('fr-MA',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+  catch { return String(str); }
+}
+
+let toastTimer;
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className='toast', 3000);
+}
+
+// ── DRAG & DROP ────────────────────────────────────────────
+const zone = document.getElementById('upload-zone');
+if (zone) {
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.style.borderColor='var(--pink)'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor=''; });
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.style.borderColor='';
+    if (e.dataTransfer.files.length) handleImages({ target:{ files:e.dataTransfer.files, value:'' } });
+  });
 }
